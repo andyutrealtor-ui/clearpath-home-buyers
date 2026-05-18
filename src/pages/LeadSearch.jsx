@@ -47,16 +47,12 @@ export default function LeadSearch({ leads, setLeads, settings }) {
           : `Search the web for homes that have been listed on the market for 90 days or more in ${state === 'TX' ? 'Texas' : state === 'UT' ? 'Utah' : state === 'CO' ? 'Colorado' : 'Arizona'}. Look on Zillow, Redfin, and Realtor.com for stale listings with price reductions. Find motivated sellers who haven't been able to sell.`;
 
         try {
-          const res = await fetch('https://api.anthropic.com/v1/messages', {
+          const res = await fetch('/api/search', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              model: 'claude-sonnet-4-20250514',
-              max_tokens: 1000,
-              tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-              messages: [{
-                role: 'user',
-                content: `${prompt}
+              apiKey,
+              prompt: `${prompt}
 
 Return results as JSON only, no markdown, no extra text:
 {
@@ -80,7 +76,6 @@ Return results as JSON only, no markdown, no extra text:
 }
 
 Find 3-5 real leads. Base them on actual public data you find. If you cannot find specific leads return an empty leads array.`
-              }]
             })
           });
 

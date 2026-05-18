@@ -23,15 +23,13 @@ export default function LeadDetail({ lead, onClose, onUpdate }) {
     setLoadingScript(true);
     setTab('script');
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `Generate a cold call script for a real estate wholesaler named Andy who works for Clear Path Home Buyers. 
+          apiKey: localStorage.getItem('clearpath_settings') ? JSON.parse(localStorage.getItem('clearpath_settings')).apiKey : '',
+          useSearch: false,
+          prompt: `Generate a cold call script for a real estate wholesaler named Andy who works for Clear Path Home Buyers. 
 
 Property: ${data.property_address}, ${data.city}, ${data.state} ${data.zip}
 Owner name: ${data.owner_name !== 'Unknown' ? data.owner_name : 'the homeowner'}
@@ -51,7 +49,6 @@ Write a natural, conversational script. Include:
 7. Closing / callback ask
 
 Keep it warm, direct, and under 400 words. Format with clear section labels.`
-          }]
         })
       });
       const json = await res.json();

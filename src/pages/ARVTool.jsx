@@ -22,16 +22,13 @@ export default function ARVTool() {
     setLoading(true);
     setResult(null);
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-          messages: [{
-            role: 'user',
-            content: `You are a real estate comp analyst. Search for recently sold homes in ZIP code ${zip} to estimate ARV.
+          apiKey: localStorage.getItem('clearpath_settings') ? JSON.parse(localStorage.getItem('clearpath_settings')).apiKey : '',
+          useSearch: true,
+          prompt: `You are a real estate comp analyst. Search for recently sold homes in ZIP code ${zip} to estimate ARV.
 
 Search for: recent home sales in ZIP ${zip}, median home prices ${zip}, real estate market ${zip} 2024 2025
 
@@ -67,7 +64,6 @@ Respond ONLY in this exact JSON format (no markdown, no extra text):
     {"quarter": "Q1 2025", "avg_price": 192000}
   ]
 }`
-          }]
         })
       });
       const json = await res.json();
