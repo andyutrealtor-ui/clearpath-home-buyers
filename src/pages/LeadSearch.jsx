@@ -38,16 +38,10 @@ export default function LeadSearch({ leads, setLeads, settings }) {
 
   const buildPrompt = (type, state, typeName) => {
     const stateName = state === 'TX' ? 'Texas' : state === 'UT' ? 'Utah' : state === 'CO' ? 'Colorado' : 'Arizona';
-    const searchInstr = type === 'preforeclosure'
-      ? `Search for pre-foreclosure properties in ${stateName}. Look for Notice of Default filings, lis pendens records, foreclosure auction notices. Search foreclosure.com, realtytrac.com, and county recorder public notices for ${stateName}.`
-      : type === 'abandoned'
-      ? `Search for abandoned, vacant, or tax delinquent properties in ${stateName}. Look for properties with unpaid property taxes, code violations, and vacant property registries.`
-      : `Search for homes listed 90+ days on market in ${stateName} on Zillow or Redfin. Find properties with multiple price reductions showing motivated sellers.`;
-
-    return `${searchInstr}
-
-Find 3 real property leads and return ONLY this JSON with no other text:
-{"leads":[{"property_address":"123 Main St","city":"Houston","state":"${state}","zip":"77001","owner_name":"Unknown","phone":"","asking_price":150000,"source":"${typeName}","days_to_auction":null,"urgency_score":6,"seller_summary":"Brief situation summary.","lender":"","filing_date":""}]}`;
+    const q = type === 'preforeclosure' ? `foreclosure listings ${stateName} 2025`
+      : type === 'abandoned' ? `tax delinquent vacant properties ${stateName} 2025`
+      : `homes 90 days market price reduced ${stateName} 2025`;
+    return `Search: "${q}". Find 2 real properties. Return ONLY JSON, no other text: {"leads":[{"property_address":"123 Main St","city":"Houston","state":"${state}","zip":"77001","owner_name":"Unknown","phone":"","asking_price":150000,"source":"${typeName}","days_to_auction":null,"urgency_score":6,"seller_summary":"One sentence.","lender":"","filing_date":""}]}`;
   };
 
   const runSearch = async () => {
@@ -96,7 +90,7 @@ Find 3 real property leads and return ONLY this JSON with no other text:
         } catch (e) {
           addLog(`❌ Error: ${e.message}`);
         }
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise(r => setTimeout(r, 8000));
       }
     }
 
