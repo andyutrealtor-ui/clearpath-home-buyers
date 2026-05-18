@@ -69,9 +69,12 @@ Find 3 real property leads and return ONLY this JSON with no other text:
             body: JSON.stringify({ apiKey, prompt: buildPrompt(type, state, typeName) })
           });
           const json = await res.json();
+          console.log("RAW API RESPONSE:", JSON.stringify(json).substring(0, 800));
+          if (json.error) { addLog("❌ API error: " + (json.error?.message || json.error)); continue; }
 
-          // Log raw response for debugging
           const rawText = json.content?.filter(b => b.type === 'text').map(b => b.text).join('') || '';
+          console.log("TEXT CONTENT:", rawText.substring(0, 400));
+          if (!rawText) { addLog("⚠️ Empty text — stop_reason: " + json.stop_reason); }
 
           const parsed = parseLeads(rawText);
           if (parsed && parsed.leads && parsed.leads.length > 0) {

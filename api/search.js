@@ -27,6 +27,14 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
+
+    // Debug: log what we got back
+    console.log('API response type:', data.type);
+    console.log('Stop reason:', data.stop_reason);
+    console.log('Content blocks:', data.content?.map(b => b.type));
+    const textBlocks = data.content?.filter(b => b.type === 'text') || [];
+    console.log('Text content:', textBlocks.map(b => b.text?.substring(0, 200)));
+
     return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({ error: error.message });
