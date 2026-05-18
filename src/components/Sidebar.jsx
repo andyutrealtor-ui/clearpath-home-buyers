@@ -2,6 +2,7 @@ import React from 'react';
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '⊞' },
+  { id: 'search', label: 'Lead Search', icon: '🔍' },
   { id: 'leads', label: 'Leads', icon: '◎' },
   { id: 'followups', label: 'Follow-Ups', icon: '◷' },
   { id: 'arv', label: 'ARV Tool', icon: '◈' },

@@ -179,6 +179,24 @@ export function Settings({ settings, setSettings }) {
         </div>
 
         <div className="card">
+          <div className="card-header"><h2 style={{ fontSize: 15, fontWeight: 700 }}>🤖 AI Settings</h2></div>
+          <div className="card-body" style={{ display: 'grid', gap: 12 }}>
+            <div className="form-group">
+              <label className="form-label">Anthropic API Key</label>
+              <input className="form-input" type="password" placeholder="sk-ant-..." value={settings.apiKey || ''} onChange={e => update('apiKey', e.target.value)} />
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                Required for automated lead search, call scripts, and ARV tool. Get yours at <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" style={{ color: 'var(--navy)' }}>console.anthropic.com</a>
+              </div>
+            </div>
+            {settings.apiKey && (
+              <div style={{ padding: 10, background: '#D1FAE5', borderRadius: 8, fontSize: 12, color: '#059669', fontWeight: 500 }}>
+                ✅ API key saved — AI features are active
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
           <div className="card-header"><h2 style={{ fontSize: 15, fontWeight: 700 }}>Daily Preferences</h2></div>
           <div className="card-body" style={{ display: 'grid', gap: 16 }}>
             <div className="form-group">
