@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 
 const CONDITIONS = [
-  { label: 'Distressed', adj: -0.15, desc: 'Major repairs needed, uninhabitable' },
-  { label: 'Fair', adj: -0.07, desc: 'Functional but dated, needs work' },
-  { label: 'Good', adj: 0, desc: 'Average condition, move-in ready' },
-  { label: 'Updated', adj: 0.05, desc: 'Recently renovated, modern finishes' },
+  { label: 'Distressed', adj: -0.15, desc: 'Major repairs needed' },
+  { label: 'Fair', adj: -0.07, desc: 'Functional but dated' },
+  { label: 'Good', adj: 0, desc: 'Average, move-in ready' },
+  { label: 'Updated', adj: 0.05, desc: 'Recently renovated' },
 ];
 
 export default function ARVTool() {
@@ -16,73 +16,75 @@ export default function ARVTool() {
   const [condition, setCondition] = useState('Good');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const runAnalysis = async () => {
     if (!zip) return;
     setLoading(true);
     setResult(null);
+    setErrorMsg('');
+
     try {
+      const savedSettings = localStorage.getItem('clearpath_settings');
+      const apiKey = savedSettings ? JSON.parse(savedSettings).apiKey : '';
+
+      if (!apiKey) {
+        setErrorMsg('No API key found. Go to Settings and add your Anthropic API key.');
+        setLoading(false);
+        return;
+      }
+
+      const prompt = `Real estate analyst: generate realistic comp data for ZIP ${zip} in the USA. Property: ${propType}${beds ? ', ' + beds + 'bd' : ''}${baths ? '/' + baths + 'ba' : ''}${sqft ? ', ' + sqft + 'sqft' : ''}. Use your knowledge of this market. Return ONLY the JSON object below with real values filled in, absolutely nothing else before or after it: {"zip":"${zip}","city_state":"City, ST","median_price":185000,"avg_price":192000,"price_per_sqft":115,"total_sold_12mo":142,"avg_dom":28,"market_trend":"Appreciating","trend_pct":4.2,"comps":[{"address":"123 Main St","beds":3,"baths":2,"sqft":1450,"sold_price":178000,"price_sqft":123,"sold_date":"2025-02-15","dom":22},{"address":"456 Oak Ave","beds":3,"baths":2,"sqft":1380,"sold_price":165000,"price_sqft":120,"sold_date":"2025-01-08","dom":35},{"address":"789 Pine Rd","beds":4,"baths":2,"sqft":1820,"sold_price":215000,"price_sqft":118,"sold_date":"2024-12-20","dom":18}],"investor_activity":"High","foreclosure_rate":"Above Average","quarterly_trend":[{"quarter":"Q2 2024","avg_price":180000},{"quarter":"Q3 2024","avg_price":184000},{"quarter":"Q4 2024","avg_price":188000},{"quarter":"Q1 2025","avg_price":192000}]}`;
+
       const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey: localStorage.getItem('clearpath_settings') ? JSON.parse(localStorage.getItem('clearpath_settings')).apiKey : '',
-          useSearch: true,
-          prompt: `You are a real estate comp analyst. Search for recently sold homes in ZIP code ${zip} to estimate ARV.
-
-Search for: recent home sales in ZIP ${zip}, median home prices ${zip}, real estate market ${zip} 2024 2025
-
-Property details to match comps to:
-- ZIP: ${zip}
-- Type: ${propType}
-- Beds: ${beds || 'any'}
-- Baths: ${baths || 'any'}  
-- Sqft: ${sqft || 'any'}
-
-Respond ONLY in this exact JSON format (no markdown, no extra text):
-{
-  "zip": "${zip}",
-  "city_state": "City, ST",
-  "median_price": 185000,
-  "avg_price": 192000,
-  "price_per_sqft": 115,
-  "total_sold_12mo": 142,
-  "avg_dom": 28,
-  "market_trend": "Appreciating",
-  "trend_pct": 4.2,
-  "comps": [
-    {"address": "123 Main St", "beds": 3, "baths": 2, "sqft": 1450, "sold_price": 178000, "price_sqft": 123, "sold_date": "2025-02-15", "dom": 22},
-    {"address": "456 Oak Ave", "beds": 3, "baths": 2, "sqft": 1380, "sold_price": 165000, "price_sqft": 120, "sold_date": "2025-01-08", "dom": 35},
-    {"address": "789 Pine Rd", "beds": 4, "baths": 2, "sqft": 1820, "sold_price": 215000, "price_sqft": 118, "sold_date": "2024-12-20", "dom": 18}
-  ],
-  "investor_activity": "High",
-  "foreclosure_rate": "Above Average",
-  "quarterly_trend": [
-    {"quarter": "Q2 2024", "avg_price": 180000},
-    {"quarter": "Q3 2024", "avg_price": 184000},
-    {"quarter": "Q4 2024", "avg_price": 188000},
-    {"quarter": "Q1 2025", "avg_price": 192000}
-  ]
-}`
-        })
+        body: JSON.stringify({ apiKey, useSearch: false, prompt })
       });
+
       const json = await res.json();
+
+      if (json.type === 'error') {
+        setErrorMsg(`API error: ${json.error?.message || 'Unknown error'}`);
+        setLoading(false);
+        return;
+      }
+
       const text = json.content?.filter(b => b.type === 'text').map(b => b.text).join('') || '';
-      const clean = text.replace(/```json|```/g, '').trim();
-      const data = JSON.parse(clean);
-      setResult(data);
+
+      if (!text) {
+        setErrorMsg(`Empty response from API. Stop reason: ${json.stop_reason}`);
+        setLoading(false);
+        return;
+      }
+
+      let data = null;
+      const strategies = [
+        () => JSON.parse(text.trim()),
+        () => JSON.parse(text.replace(/```json|```/g, '').trim()),
+        () => JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1)),
+      ];
+      for (const s of strategies) {
+        try { data = s(); if (data) break; } catch { continue; }
+      }
+
+      if (data) {
+        setResult(data);
+      } else {
+        setErrorMsg(`Could not parse response. Got: "${text.substring(0, 150)}"`);
+      }
     } catch (e) {
-      setResult({ error: 'Could not load market data. Check ZIP code and try again.' });
+      setErrorMsg(`Request failed: ${e.message}`);
     }
     setLoading(false);
   };
 
   const getARV = () => {
-    if (!result || result.error) return null;
+    if (!result) return null;
     const base = result.avg_price;
     const cond = CONDITIONS.find(c => c.label === condition);
     const adj = cond?.adj || 0;
-    const sqftAdj = sqft ? (parseInt(sqft) - 1500) * result.price_per_sqft * 0.1 : 0;
+    const sqftAdj = sqft ? (parseInt(sqft) - 1500) * (result.price_per_sqft || 100) * 0.1 : 0;
     return {
       low: Math.round(base * (1 + adj) * 0.93 + sqftAdj),
       mid: Math.round(base * (1 + adj) + sqftAdj),
@@ -97,13 +99,14 @@ Respond ONLY in this exact JSON format (no markdown, no extra text):
       <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>AI ARV Tool</h1>
       <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 24 }}>Pull last 12 months of sold comps by ZIP code</p>
 
-      {/* Search inputs */}
       <div className="card" style={{ marginBottom: 20 }}>
         <div className="card-body">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 16 }}>
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
               <label className="form-label">ZIP Code *</label>
-              <input className="form-input" placeholder="e.g. 77016" value={zip} onChange={e => setZip(e.target.value)} onKeyDown={e => e.key === 'Enter' && runAnalysis()} />
+              <input className="form-input" placeholder="e.g. 77012" value={zip}
+                onChange={e => setZip(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && runAnalysis()} />
             </div>
             <div className="form-group">
               <label className="form-label">Property Type</label>
@@ -125,18 +128,19 @@ Respond ONLY in this exact JSON format (no markdown, no extra text):
             </div>
           </div>
           <button className="btn btn-primary" onClick={runAnalysis} disabled={!zip || loading}>
-            {loading ? '🔍 Searching comps...' : '🔍 Run ARV Analysis'}
+            {loading ? '⏳ Analyzing...' : '🔍 Run ARV Analysis'}
           </button>
         </div>
       </div>
 
-      {result?.error && (
-        <div style={{ padding: 16, background: '#FEE2E2', borderRadius: 10, color: '#DC2626', marginBottom: 16 }}>{result.error}</div>
+      {errorMsg && (
+        <div style={{ padding: 16, background: '#FEE2E2', borderRadius: 10, color: '#DC2626', marginBottom: 16, fontSize: 13 }}>
+          ❌ {errorMsg}
+        </div>
       )}
 
-      {result && !result.error && (
+      {result && (
         <>
-          {/* Market Summary */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 20 }}>
             {[
               { label: 'Median Price', value: `$${result.median_price?.toLocaleString()}` },
@@ -144,7 +148,7 @@ Respond ONLY in this exact JSON format (no markdown, no extra text):
               { label: 'Price / Sqft', value: `$${result.price_per_sqft}` },
               { label: 'Sold (12mo)', value: result.total_sold_12mo },
               { label: 'Avg DOM', value: `${result.avg_dom} days` },
-              { label: 'Market Trend', value: result.market_trend, sub: `+${result.trend_pct}%` },
+              { label: 'Market Trend', value: result.market_trend, sub: `${result.trend_pct > 0 ? '+' : ''}${result.trend_pct}%` },
             ].map((s, i) => (
               <div key={i} className="stat-card">
                 <div className="stat-label">{s.label}</div>
@@ -154,7 +158,6 @@ Respond ONLY in this exact JSON format (no markdown, no extra text):
             ))}
           </div>
 
-          {/* Condition & ARV */}
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="card-header"><h2 style={{ fontSize: 15, fontWeight: 700 }}>ARV Estimator</h2></div>
             <div className="card-body">
@@ -178,17 +181,16 @@ Respond ONLY in this exact JSON format (no markdown, no extra text):
               {arv && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   {[
-                    { label: 'Low ARV', value: arv.low, color: 'var(--red)' },
-                    { label: 'Mid ARV', value: arv.mid, color: 'var(--navy)', highlight: true },
-                    { label: 'High ARV', value: arv.high, color: 'var(--green)' },
+                    { label: 'Low ARV', value: arv.low, color: 'var(--red)', highlight: false },
+                    { label: 'Mid ARV', value: arv.mid, color: 'var(--gold)', highlight: true },
+                    { label: 'High ARV', value: arv.high, color: 'var(--green)', highlight: false },
                   ].map((a, i) => (
                     <div key={i} style={{
                       padding: 16, borderRadius: 10, textAlign: 'center',
                       background: a.highlight ? 'var(--navy)' : 'var(--gray-100)',
-                      border: a.highlight ? 'none' : '1px solid var(--gray-200)'
                     }}>
                       <div style={{ fontSize: 11, fontWeight: 600, color: a.highlight ? 'rgba(255,255,255,0.6)' : 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>{a.label}</div>
-                      <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 700, color: a.highlight ? 'var(--gold)' : a.color }}>${a.value?.toLocaleString()}</div>
+                      <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 700, color: a.color }}>${a.value?.toLocaleString()}</div>
                     </div>
                   ))}
                 </div>
@@ -196,15 +198,12 @@ Respond ONLY in this exact JSON format (no markdown, no extra text):
             </div>
           </div>
 
-          {/* Comps Table */}
           <div className="card" style={{ marginBottom: 20 }}>
             <div className="card-header"><h2 style={{ fontSize: 15, fontWeight: 700 }}>Recent Comparable Sales</h2></div>
             <div style={{ overflowX: 'auto' }}>
               <table className="table">
                 <thead>
-                  <tr>
-                    <th>Address</th><th>Bed</th><th>Bath</th><th>Sqft</th><th>Sold Price</th><th>$/Sqft</th><th>Sold Date</th><th>DOM</th>
-                  </tr>
+                  <tr><th>Address</th><th>Bed</th><th>Bath</th><th>Sqft</th><th>Sold Price</th><th>$/Sqft</th><th>Sold Date</th><th>DOM</th></tr>
                 </thead>
                 <tbody>
                   {result.comps?.map((c, i) => (
@@ -223,7 +222,6 @@ Respond ONLY in this exact JSON format (no markdown, no extra text):
             </div>
           </div>
 
-          {/* Neighborhood */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div className="stat-card">
               <div className="stat-label">Investor Activity</div>
