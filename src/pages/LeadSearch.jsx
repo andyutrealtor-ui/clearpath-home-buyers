@@ -85,8 +85,39 @@ export default function LeadSearch({ leads, setLeads, settings }) {
               arv: null, repair_estimate: null, offer_made: null, mao: null,
               equity_percent: null, auction_date: '', loan_amount: null, email: '',
             }));
+
+            // Auto skip trace each lead
+            addLog(`🔎 Skip tracing ${newLeads.length} leads...`);
+            for (const lead of newLeads) {
+              try {
+                const stRes = await fetch('/api/skiptrace', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    apiKey,
+                    address: lead.property_address,
+                    city: lead.city,
+                    state: lead.state,
+                    zip: lead.zip,
+                    owner_name: lead.owner_name,
+                  })
+                });
+                const stData = await stRes.json();
+                if (stData.phone_primary) {
+                  lead.phone = lead.phone || stData.phone_primary;
+                  lead.skip_trace_phone = stData.phone_primary;
+                  lead.skip_trace_email = stData.email || '';
+                  lead.skip_trace_confidence = stData.confidence || 'Low';
+                  if (!lead.email) lead.email = stData.email || '';
+                }
+                await new Promise(r => setTimeout(r, 3000));
+              } catch (e) {
+                console.log('Skip trace error:', e.message);
+              }
+            }
+
             allResults.push(...newLeads);
-            addLog(`✅ Found ${newLeads.length} leads in ${state}`);
+            addLog(`✅ Found ${newLeads.length} leads in ${state} — skip trace complete`);
           } else {
             addLog(`⚠️ No leads returned for ${typeName} in ${state}`);
           }

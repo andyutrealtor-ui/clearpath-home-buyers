@@ -49,11 +49,44 @@ export default function Leads({ leads, setLeads, selectedLead, setSelectedLead }
 
   const urgencyClass = (score) => score >= 7 ? 'hot' : score >= 5 ? 'warm' : 'cool';
 
+  const exportCSV = () => {
+    const headers = ['First Name','Last Name','Property Address','City','State','Zip','Phone','Email','Asking Price','ARV','Source','Status','Notes'];
+    const rows = filtered.map(l => {
+      const nameParts = (l.owner_name || 'Unknown').split(' ');
+      return [
+        nameParts[0] || 'Unknown',
+        nameParts.slice(1).join(' ') || '',
+        l.property_address || '',
+        l.city || '',
+        l.state || '',
+        l.zip || '',
+        l.phone || '',
+        l.email || '',
+        l.asking_price || '',
+        l.arv || '',
+        l.source || '',
+        l.status || '',
+        l.seller_summary || ''
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clearpath-leads-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fade-in" style={{ padding: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>Leads <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 400 }}>({filtered.length})</span></h1>
-        <button className="btn btn-gold" onClick={() => setShowAdd(true)}>+ Add Lead</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-outline" onClick={exportCSV}>⬇️ Export CSV</button>
+          <button className="btn btn-gold" onClick={() => setShowAdd(true)}>+ Add Lead</button>
+        </div>
       </div>
 
       {/* Filters */}

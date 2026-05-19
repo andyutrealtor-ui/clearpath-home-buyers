@@ -5,6 +5,7 @@ import Leads from './pages/Leads';
 import ARVTool from './pages/ARVTool';
 import { FollowUps, Buyers, Settings } from './pages/OtherPages';
 import LeadSearch from './pages/LeadSearch';
+import LOI from './pages/LOI';
 import { initialLeads, initialBuyers } from './data/leads';
 
 const LEADS_KEY = 'clearpath_leads';
@@ -46,6 +47,7 @@ export default function App() {
   const renderPage = () => {
     switch (page) {
       case 'search': return <LeadSearch leads={leads} setLeads={setLeads} settings={settings} />;
+      case 'loi': return <LOI leads={leads} settings={settings} />;
       case 'dashboard': return <Dashboard leads={leads} setPage={setPage} setSelectedLead={setSelectedLead} />;
       case 'leads': return <Leads leads={leads} setLeads={setLeads} selectedLead={selectedLead} setSelectedLead={setSelectedLead} />;
       case 'followups': return <FollowUps leads={leads} setLeads={setLeads} />;

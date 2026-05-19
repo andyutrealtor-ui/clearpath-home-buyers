@@ -6,6 +6,7 @@ const navItems = [
   { id: 'leads', label: 'Leads', icon: '◎' },
   { id: 'followups', label: 'Follow-Ups', icon: '◷' },
   { id: 'arv', label: 'ARV Tool', icon: '◈' },
+  { id: 'loi', label: 'Send Offer', icon: '📄' },
   { id: 'buyers', label: 'Cash Buyers', icon: '◉' },
   { id: 'settings', label: 'Settings', icon: '◌' },
 ];
