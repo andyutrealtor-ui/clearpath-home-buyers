@@ -32,6 +32,12 @@ export default function Leads({ leads, setLeads, selectedLead, setSelectedLead }
     setLeads(prev => prev.map(l => l.id === updated.id ? updated : l));
   };
 
+  const deleteLead = (id) => {
+    if (window.confirm('Remove this lead from your pipeline?')) {
+      setLeads(prev => prev.filter(l => l.id !== id));
+    }
+  };
+
   const addLead = () => {
     const lead = { ...newLead, id: Date.now(), date_added: new Date().toISOString(), last_contacted: '',
       asking_price: +newLead.asking_price || null, arv: +newLead.arv || null,
@@ -118,6 +124,7 @@ export default function Leads({ leads, setLeads, selectedLead, setSelectedLead }
                 <th>Source</th>
                 <th>Status</th>
                 <th>Follow-Up</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -151,6 +158,9 @@ export default function Leads({ leads, setLeads, selectedLead, setSelectedLead }
                   <td style={{ fontSize: 12, color: lead.follow_up_date ? 'var(--amber)' : 'var(--text-muted)' }}>
                     {lead.follow_up_date ? new Date(lead.follow_up_date).toLocaleDateString() : '—'}
                   </td>
+                  <td>
+                    <button className="btn btn-danger btn-sm" onClick={e => { e.stopPropagation(); deleteLead(lead.id); }}>✕</button>
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
@@ -163,7 +173,7 @@ export default function Leads({ leads, setLeads, selectedLead, setSelectedLead }
 
       {/* Lead Detail Modal */}
       {selectedLead && (
-        <LeadDetail lead={selectedLead} onClose={() => setSelectedLead(null)} onUpdate={updateLead} />
+        <LeadDetail lead={selectedLead} onClose={() => setSelectedLead(null)} onUpdate={updateLead} onDelete={deleteLead} />
       )}
 
       {/* Add Lead Modal */}

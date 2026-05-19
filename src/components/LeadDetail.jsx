@@ -292,6 +292,8 @@ Clear Path Home Buyers`;
         </div>
 
         <div className="modal-footer">
+          <button className="btn btn-danger" onClick={() => { if(window.confirm('Remove this lead?')) { onDelete(data.id); onClose(); } }}>🗑 Delete Lead</button>
+          <div style={{ flex: 1 }} />
           <button className="btn btn-outline" onClick={onClose}>Cancel</button>
           <button className="btn btn-primary" onClick={save}>Save Changes</button>
         </div>
