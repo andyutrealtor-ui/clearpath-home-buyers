@@ -33,8 +33,13 @@ export default function Leads({ leads, setLeads, selectedLead, setSelectedLead }
   };
 
   const deleteLead = (id) => {
-    if (window.confirm('Remove this lead from your pipeline?')) {
-      setLeads(prev => prev.filter(l => l.id !== id));
+    const confirmed = window.confirm('Remove this lead from your pipeline?');
+    if (confirmed) {
+      setLeads(prev => {
+        const updated = prev.filter(l => String(l.id) !== String(id));
+        return updated;
+      });
+      setSelectedLead(null);
     }
   };
 
