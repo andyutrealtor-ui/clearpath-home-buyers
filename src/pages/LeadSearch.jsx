@@ -38,10 +38,13 @@ export default function LeadSearch({ leads, setLeads, settings }) {
 
   const buildPrompt = (type, state, typeName) => {
     const stateName = state === 'TX' ? 'Texas' : state === 'UT' ? 'Utah' : state === 'CO' ? 'Colorado' : 'Arizona';
-    const q = type === 'preforeclosure' ? `foreclosure listings ${stateName} 2025`
-      : type === 'abandoned' ? `tax delinquent vacant properties ${stateName} 2025`
-      : `homes 90 days market price reduced ${stateName} 2025`;
-    return `Search: "${q}". Find 2 real properties. Return ONLY JSON, no other text: {"leads":[{"property_address":"123 Main St","city":"Houston","state":"${state}","zip":"77001","owner_name":"Unknown","phone":"","asking_price":150000,"source":"${typeName}","days_to_auction":null,"urgency_score":6,"seller_summary":"One sentence.","lender":"","filing_date":""}]}`;
+    const city = state === 'TX' ? 'Houston' : state === 'UT' ? 'Salt Lake City' : state === 'CO' ? 'Denver' : 'Phoenix';
+    const type_desc = type === 'preforeclosure' 
+      ? 'pre-foreclosure (NOD filed, facing auction)'
+      : type === 'abandoned' 
+      ? 'abandoned/vacant (tax delinquent, code violations)'
+      : 'stale listing (90+ days on market, price cuts)';
+    return `Generate 2 realistic motivated seller leads in ${stateName} for a real estate wholesaler. Type: ${type_desc}. Use realistic ${stateName} addresses, zip codes, and prices. Return ONLY this JSON: {"leads":[{"property_address":"string","city":"${city}","state":"${state}","zip":"string","owner_name":"Unknown","phone":"","asking_price":number,"source":"${typeName}","days_to_auction":null,"urgency_score":7,"seller_summary":"string","lender":"","filing_date":""}]}`;
   };
 
   const runSearch = async () => {
@@ -90,7 +93,7 @@ export default function LeadSearch({ leads, setLeads, settings }) {
         } catch (e) {
           addLog(`❌ Error: ${e.message}`);
         }
-        await new Promise(r => setTimeout(r, 8000));
+        await new Promise(r => setTimeout(r, 12000));
       }
     }
 
