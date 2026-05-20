@@ -29,7 +29,7 @@ export default function LeadDetail({ lead, onClose, onUpdate }) {
         body: JSON.stringify({
           apiKey: localStorage.getItem('clearpath_settings') ? JSON.parse(localStorage.getItem('clearpath_settings')).apiKey : '',
           useSearch: false,
-          prompt: `Generate a cold call script for a real estate wholesaler named Andy who works for Clear Path Home Buyers. 
+          prompt: `Generate a cold call script for a real estate wholesaler named Andy who works for Clear Path Properties LLC. 
 
 Property: ${data.property_address}, ${data.city}, ${data.state} ${data.zip}
 Owner name: ${data.owner_name !== 'Unknown' ? data.owner_name : 'the homeowner'}
@@ -40,7 +40,7 @@ Days to auction: ${data.days_to_auction || 'N/A'}
 Lender: ${data.lender || 'unknown'}
 
 Write a natural, conversational script. Include:
-1. Opener — starts with "Hi [Name], my name is Andy with Clear Path Home Buyers..."
+1. Opener — starts with "Hi [Name], my name is Andy with Clear Path Properties LLC..."
 2. Reason for calling (keep it helpful, not pushy)
 3. Pain acknowledgment
 4. Value proposition — we can close fast, cash, as-is
@@ -60,7 +60,7 @@ Keep it warm, direct, and under 400 words. Format with clear section labels.`
   };
 
   const generateBlast = () => {
-    const msg = `🏠 DEAL ALERT — Clear Path Home Buyers
+    const msg = `🏠 DEAL ALERT — Clear Path Properties LLC
 
 📍 ${data.property_address}, ${data.city}, ${data.state} ${data.zip}
 💰 Assignment Price: $${data.asking_price?.toLocaleString() || 'TBD'}
@@ -72,7 +72,7 @@ Keep it warm, direct, and under 400 words. Format with clear section labels.`
 
 Contact Andy directly:
 📞 Call/Text to claim this deal
-Clear Path Home Buyers`;
+Clear Path Properties LLC`;
     setBlastMsg(msg);
     setTab('blast');
   };

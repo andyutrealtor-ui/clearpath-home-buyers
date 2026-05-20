@@ -33,7 +33,7 @@ export default function Sidebar({ page, setPage, leads }) {
           }}>🏠</div>
           <div>
             <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 13, color: 'var(--white)', lineHeight: 1.2 }}>Clear Path</div>
-            <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 13, color: 'var(--gold)', lineHeight: 1.2 }}>Home Buyers</div>
+            <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 13, color: 'var(--gold)', lineHeight: 1.2 }}>Properties LLC</div>
           </div>
         </div>
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>

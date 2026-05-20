@@ -53,7 +53,7 @@ As-Is Cash Offer
 Date: ${today}
 
 SELLER: ${form.seller_name || '[Seller Name]'}
-BUYER: ${buyerName} / Clear Path Home Buyers
+BUYER: ${buyerName} / Clear Path Properties LLC
 
 PROPERTY: ${form.property_address}, ${form.city}, ${form.state} ${form.zip}
 
@@ -61,7 +61,7 @@ PROPERTY: ${form.property_address}, ${form.city}, ${form.state} ${form.zip}
 
 Dear ${form.seller_name || 'Property Owner'},
 
-Clear Path Home Buyers is pleased to present this Letter of Intent to purchase the above-referenced property under the following terms:
+Clear Path Properties LLC is pleased to present this Letter of Intent to purchase the above-referenced property under the following terms:
 
 PURCHASE PRICE: $${Number(form.offer_price).toLocaleString()}
 
@@ -89,7 +89,7 @@ We look forward to working with you and making this a smooth, simple transaction
 Respectfully,
 
 ${buyerName}
-Clear Path Home Buyers
+Clear Path Properties LLC
 ${buyerPhone ? `📞 ${buyerPhone}` : ''}
 ${buyerEmail ? `✉️ ${buyerEmail}` : ''}
 
@@ -254,7 +254,7 @@ Printed Name: _________________________`;
             <div className="card" style={{ position: 'sticky', top: 20 }}>
               <div className="card-header">
                 <h2 style={{ fontSize: 14, fontWeight: 700 }}>LOI Preview</h2>
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Clear Path Home Buyers</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Clear Path Properties LLC</span>
               </div>
               <div className="card-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
                 <pre style={{
