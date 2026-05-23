@@ -57,22 +57,23 @@ export function FollowUps({ leads, setLeads }) {
 
 // ---- BUYERS CRM ----
 export function Buyers({ buyers, setBuyers }) {
-  const [showAdd, setShowAdd] = useState(false);
+  const [view, setView] = useState('list'); // 'list' or 'add'
   const [form, setForm] = useState({ name: '', company: '', phone: '', email: '', website: '', states: [], property_types: [], min_price: '', max_price: '', condition: 'As-Is', close_days: '14', funding: 'Cash', deal_types: [], tag: 'Active', notes: '' });
 
   const toggleState = (s) => setForm(p => ({ ...p, states: p.states.includes(s) ? p.states.filter(x => x !== s) : [...p.states, s] }));
 
   const addBuyer = () => {
     setBuyers(prev => [...prev, { ...form, id: Date.now(), min_price: +form.min_price || 0, max_price: +form.max_price || 0, close_days: +form.close_days || 14, total_deals_closed: 0, last_contacted: '', last_deal_sent: '', last_deal_closed: '' }]);
-    setShowAdd(false);
+    setView('list');
     setForm({ name: '', company: '', phone: '', email: '', website: '', states: [], property_types: [], min_price: '', max_price: '', condition: 'As-Is', close_days: '14', funding: 'Cash', deal_types: [], tag: 'Active', notes: '' });
   };
 
   return (
     <div className="fade-in" style={{ padding: 24, maxWidth: 900 }}>
+      {view === 'list' && <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>Cash Buyers <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 400 }}>({buyers.length})</span></h1>
-        <button className="btn btn-gold" onClick={() => setShowAdd(true)}>+ Add Buyer</button>
+        <button className="btn btn-gold" onClick={() => setView('add')}>+ Add Buyer</button>
       </div>
 
       {buyers.length === 0 ? (
@@ -103,14 +104,15 @@ export function Buyers({ buyers, setBuyers }) {
         </div>
       )}
 
-      {showAdd && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
-          <div className="modal fade-in" style={{ maxWidth: 780, maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
-            <div className="modal-header">
-              <h2 style={{ fontSize: 16, fontWeight: 700 }}>Add Cash Buyer</h2>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowAdd(false)}>✕</button>
-            </div>
-            <div className="modal-body" style={{ overflowY: "auto", flex: 1 }}>
+      </>}
+      {view === 'add' && (
+        <div className="fade-in">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+            <button className="btn btn-outline btn-sm" onClick={() => setView('list')}>← Back</button>
+            <h2 style={{ fontSize: 18, fontWeight: 700 }}>Add Cash Buyer</h2>
+          </div>
+          <div style={{ maxWidth: 760 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
                 {/* Contact Info */}
@@ -223,9 +225,9 @@ export function Buyers({ buyers, setBuyers }) {
 
               </div>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setShowAdd(false)}>Cancel</button>
-              <button className="btn btn-gold" onClick={addBuyer}>Add Buyer</button>
+            <div style={{ display: 'flex', gap: 10, marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--gray-200)' }}>
+              <button className="btn btn-outline" onClick={() => setView('list')}>Cancel</button>
+              <button className="btn btn-gold btn-lg" onClick={addBuyer}>Add Buyer</button>
             </div>
           </div>
         </div>
