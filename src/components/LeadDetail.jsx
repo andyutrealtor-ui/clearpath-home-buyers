@@ -264,6 +264,82 @@ Clear Path Properties LLC`;
             </div>
           )}
 
+          {tab === 'profit' && (
+            <div style={{ display: 'grid', gap: 16 }}>
+              {/* Profit Summary Card */}
+              <div style={{
+                background: 'linear-gradient(135deg, #0A2342 0%, #0f2f56 100%)',
+                borderRadius: 12, padding: 20, color: 'white'
+              }}>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>Estimated Assignment Fee</div>
+                <div style={{ fontFamily: 'Syne', fontSize: 36, fontWeight: 800, color: '#E8A020', marginBottom: 4 }}>
+                  {data.arv && data.asking_price
+                    ? `$${Math.max(0, (data.arv * 0.70) - (data.repair_estimate || 0) - (data.asking_price || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                    : '—'}
+                </div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>If sold at MAO to a cash buyer</div>
+              </div>
+
+              {/* Breakdown */}
+              <div className="card">
+                <div className="card-header"><h3 style={{ fontSize: 14, fontWeight: 700 }}>Deal Breakdown</h3></div>
+                <div className="card-body" style={{ display: 'grid', gap: 0 }}>
+                  {[
+                    { label: 'ARV (After Repair Value)', value: data.arv, color: 'var(--green)' },
+                    { label: '× 70% Rule', value: data.arv ? data.arv * 0.70 : null, color: 'var(--text-secondary)' },
+                    { label: '− Estimated Repairs', value: data.repair_estimate ? -data.repair_estimate : null, color: '#EF4444' },
+                    { label: '− Your Contract Price', value: data.asking_price ? -data.asking_price : null, color: '#EF4444' },
+                  ].map((row, i) => (
+                    <div key={i} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '10px 0', borderBottom: i < 3 ? '1px solid var(--gray-100)' : 'none'
+                    }}>
+                      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{row.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: row.color }}>
+                        {row.value != null ? `$${Math.abs(row.value).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
+                      </span>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 14, marginTop: 4 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700 }}>Your Assignment Fee</span>
+                    <span style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 800, color: data.arv && data.asking_price && ((data.arv * 0.70) - (data.repair_estimate || 0) - data.asking_price) > 0 ? 'var(--green)' : '#EF4444' }}>
+                      {data.arv && data.asking_price
+                        ? `$${Math.max(0, (data.arv * 0.70) - (data.repair_estimate || 0) - data.asking_price).toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                        : '—'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Scenarios */}
+              <div className="card">
+                <div className="card-header"><h3 style={{ fontSize: 14, fontWeight: 700 }}>Payout Scenarios</h3></div>
+                <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                  {[
+                    { label: 'Conservative', pct: 0.60, color: '#EF4444' },
+                    { label: 'Standard', pct: 0.70, color: '#E8A020' },
+                    { label: 'Best Case', pct: 0.80, color: '#10B981' },
+                  ].map(s => {
+                    const fee = data.arv ? Math.max(0, (data.arv * s.pct) - (data.repair_estimate || 0) - (data.asking_price || 0)) : 0;
+                    return (
+                      <div key={s.label} style={{ textAlign: 'center', padding: 14, background: 'var(--gray-50)', borderRadius: 10, border: '1px solid var(--gray-200)' }}>
+                        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{s.label}</div>
+                        <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, color: s.color }}>${fee.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>{(s.pct * 100).toFixed(0)}% rule</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {(!data.arv || !data.asking_price) && (
+                <div style={{ padding: 14, background: '#FFFBEB', borderRadius: 10, fontSize: 13, color: '#D97706', border: '1px solid #FDE68A' }}>
+                  ⚠️ Enter ARV and your contract price in the Info tab to see your profit breakdown.
+                </div>
+              )}
+            </div>
+          )}
+
           {tab === 'blast' && (
             <div>
               {!blastMsg ? (
