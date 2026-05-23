@@ -8,10 +8,11 @@ const navItems = [
   { id: 'arv', label: 'ARV Tool', icon: '◈' },
   { id: 'loi', label: 'Send Offer', icon: '📄' },
   { id: 'buyers', label: 'Cash Buyers', icon: '◉' },
+  { id: 'team', label: 'Team', icon: '👥' },
   { id: 'settings', label: 'Settings', icon: '◌' },
 ];
 
-export default function Sidebar({ page, setPage, leads }) {
+export default function Sidebar({ page, setPage, leads, currentUser, onLogout }) {
   const followupsDue = leads.filter(l => {
     if (!l.follow_up_date) return false;
     const today = new Date().toDateString();
@@ -67,8 +68,13 @@ export default function Sidebar({ page, setPage, leads }) {
 
       {/* Bottom */}
       <div style={{ padding: '16px 20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>Andy Johnson</div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.2)' }}>UT · TX · CO · AZ</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>{currentUser?.name}</div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 10 }}>{currentUser?.role}</div>
+        <button onClick={onLogout} style={{
+          background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 6,
+          color: 'rgba(255,255,255,0.5)', fontSize: 12, padding: '6px 12px',
+          cursor: 'pointer', width: '100%', fontFamily: 'DM Sans', textAlign: 'left'
+        }}>🚪 Sign Out</button>
       </div>
     </aside>
   );

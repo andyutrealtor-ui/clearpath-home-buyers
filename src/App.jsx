@@ -5,6 +5,8 @@ import Leads from './pages/Leads';
 import ARVTool from './pages/ARVTool';
 import { FollowUps, Buyers, Settings } from './pages/OtherPages';
 import LeadSearch from './pages/LeadSearch';
+import Login from './pages/Login';
+import Team from './pages/Team';
 import LOI from './pages/LOI';
 import { initialLeads, initialBuyers } from './data/leads';
 
@@ -20,6 +22,17 @@ const defaultSettings = {
 
 export default function App() {
   const [page, setPage] = useState('dashboard');
+  const [currentUser, setCurrentUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('clearpath_session')); } catch { return null; }
+  });
+
+  const handleLogin = (user) => setCurrentUser(user);
+  const handleLogout = () => {
+    localStorage.removeItem('clearpath_session');
+    setCurrentUser(null);
+  };
+
+  if (!currentUser) return <Login onLogin={handleLogin} />;
   const [selectedLead, setSelectedLead] = useState(null);
   const [leads, setLeads] = useState(() => {
     try {
@@ -48,6 +61,7 @@ export default function App() {
     switch (page) {
       case 'search': return <LeadSearch leads={leads} setLeads={setLeads} settings={settings} />;
       case 'loi': return <LOI leads={leads} settings={settings} />;
+      case 'team': return <Team currentUser={currentUser} />;
       case 'dashboard': return <Dashboard leads={leads} setPage={setPage} setSelectedLead={setSelectedLead} />;
       case 'leads': return <Leads leads={leads} setLeads={setLeads} selectedLead={selectedLead} setSelectedLead={setSelectedLead} />;
       case 'followups': return <FollowUps leads={leads} setLeads={setLeads} />;
@@ -60,7 +74,7 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar page={page} setPage={(p) => { setPage(p); setSelectedLead(null); }} leads={leads} />
+      <Sidebar page={page} setPage={(p) => { setPage(p); setSelectedLead(null); }} leads={leads} currentUser={currentUser} onLogout={handleLogout} />
       <main style={{
         marginLeft: 'var(--sidebar-width)', flex: 1,
         minHeight: '100vh', background: 'var(--off-white)', overflowX: 'hidden'

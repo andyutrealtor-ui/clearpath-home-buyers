@@ -1,24 +1,16 @@
 import React, { useState } from 'react';
 
 const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+const expires = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
 export default function LOI({ leads, settings }) {
   const [selectedLeadId, setSelectedLeadId] = useState('');
   const [form, setForm] = useState({
-    offer_price: '',
-    earnest_money: '500',
-    close_days: '14',
-    inspection_days: '7',
-    seller_name: '',
-    seller_email: '',
-    seller_phone: '',
-    property_address: '',
-    city: '',
-    state: '',
-    zip: '',
-    as_is: true,
-    assignment: true,
-    notes: '',
+    offer_price: '', earnest_money: '1500', close_days: '30',
+    inspection_days: '14', seller_name: '', seller_email: '',
+    seller_phone: '', property_address: '', city: '', state: '',
+    zip: '', property_type: 'Single Family Residential',
+    assignment: true, notes: '',
   });
   const [sent, setSent] = useState(false);
   const [preview, setPreview] = useState(false);
@@ -33,7 +25,7 @@ export default function LOI({ leads, settings }) {
       ...p,
       seller_name: lead.owner_name !== 'Unknown' ? lead.owner_name : '',
       seller_phone: lead.phone || '',
-      seller_email: lead.email || '',
+      seller_email: lead.email || lead.skip_trace_email || '',
       property_address: lead.property_address || '',
       city: lead.city || '',
       state: lead.state || '',
@@ -42,96 +34,136 @@ export default function LOI({ leads, settings }) {
     }));
   };
 
-  const generateLOI = () => {
-    const buyerName = settings?.name || 'Andy Johnson';
-    const buyerPhone = settings?.phone || '';
-    const buyerEmail = settings?.email || '';
+  const buyerName = settings?.name || 'Andy Johnson';
+  const buyerPhone = settings?.phone || '';
+  const buyerEmail = settings?.email || '';
 
-    return `LETTER OF INTENT TO PURCHASE REAL ESTATE
-As-Is Cash Offer
+  const generateLOI = () => `LETTER OF INTENT
+As-Is Cash Purchase Offer
 
 Date: ${today}
+Offer Valid Until: ${expires}
 
-SELLER: ${form.seller_name || '[Seller Name]'}
-BUYER: ${buyerName} / Clear Path Properties LLC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PROPERTY: ${form.property_address}, ${form.city}, ${form.state} ${form.zip}
+TO:     ${form.seller_name || '[Seller / Seller\'s Agent]'}
+FROM:   ${buyerName}, Clear Path Properties LLC
+RE:     Letter of Intent to Purchase Real Property
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Dear ${form.seller_name || 'Property Owner'},
+Dear ${form.seller_name || 'Seller / Seller\'s Representative'},
 
-Clear Path Properties LLC is pleased to present this Letter of Intent to purchase the above-referenced property under the following terms:
+Thank you for taking the time to speak with us. Clear Path Properties LLC is pleased to present this Letter of Intent to purchase the property described below. We specialize in straightforward, as-is cash closings — no repairs required, no agent commissions charged to the seller, and no financing contingencies. Our goal is to make this as simple and stress-free as possible for you.
 
-PURCHASE PRICE: $${Number(form.offer_price).toLocaleString()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROPERTY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-TERMS:
-• All-cash purchase — no financing contingency
-• Property purchased strictly AS-IS, WHERE-IS
-• No repairs, updates, or cleaning required from seller
-• Seller pays NO commissions or real estate fees
-• Earnest Money Deposit: $${Number(form.earnest_money).toLocaleString()} upon execution of purchase agreement
-• Inspection Period: ${form.inspection_days} days from contract execution
-• Closing Timeline: ${form.close_days} business days from end of inspection period
-${form.assignment ? '• Buyer reserves the right to assign this contract to a third party' : ''}
+Address:          ${form.property_address || '[Property Address]'}
+City, State ZIP:  ${form.city || '[City]'}, ${form.state || '[State]'} ${form.zip || '[ZIP]'}
+Property Type:    ${form.property_type}
+Condition:        As-Is — no repairs required from Seller
 
-WHAT THIS MEANS FOR YOU:
-✓ Fast, hassle-free closing
-✓ No showings, no open houses, no waiting
-✓ Walk away with cash in hand
-✓ We handle all closing costs
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OFFER TERMS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-${form.notes ? `ADDITIONAL NOTES:\n${form.notes}\n` : ''}
-This Letter of Intent is non-binding and is intended to outline the general terms for a formal Purchase and Sale Agreement. This offer is valid for 5 business days from the date above.
+Purchase Price:       $${form.offer_price ? Number(form.offer_price).toLocaleString() : '___________'} (All Cash)
+Earnest Money:        $${Number(form.earnest_money).toLocaleString()} — non-refundable after inspection period,
+                      submitted upon execution of Purchase Agreement
+Inspection Period:    ${form.inspection_days} business days from execution of Purchase Agreement
+Closing Date:         On or before ${form.close_days} days from effective date of agreement
+Title Company:        Seller's choice of title company
+Closing Costs:        Each party responsible for their own closing costs
+Commission:           No real estate commission charged to Seller${form.assignment ? `
+Assignment:           Buyer reserves the right to assign this contract to a third party` : ''}
 
-We look forward to working with you and making this a smooth, simple transaction.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONDITIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Respectfully,
+• Clear and marketable title free of undisclosed liens or encumbrances
+• Satisfactory results of buyer's inspection during the inspection period
+• Seller to provide property access within 5 business days of execution
+• Property delivered in same condition as of the date of this Letter of Intent
+• No new liens or encumbrances to be placed on property prior to closing
 
-${buyerName}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+WHAT THIS MEANS FOR YOU
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ No repairs or cleaning required — sell completely as-is, in any condition
+✓ No agent commissions — you keep more of the sale price
+✓ No financing contingencies — cash offer, no bank approval needed
+✓ Fast closing — close in as little as ${form.close_days} days or on your timeline
+✓ Simple process — no showings, no open houses, no waiting on the market
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEXT STEPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Review this LOI and contact us with any questions or counter-proposals
+2. If terms are acceptable, we deliver a formal Purchase Agreement within 48 hours
+3. Once the Purchase Agreement is signed, earnest money is submitted
+4. Inspection scheduled within 5 business days of execution
+5. We close on or before the agreed closing date — cash at the table
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DISCLOSURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+This Letter of Intent is NON-BINDING and is intended solely to outline general terms under which the parties would proceed to a formal Purchase and Sale Agreement. Neither party shall be legally obligated unless a formal Purchase and Sale Agreement is fully executed by both parties.
+
+This offer is valid for 5 business days from ${today} and expires ${expires}.
+${form.notes ? `\nADDITIONAL NOTES:\n${form.notes}\n` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SIGNATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+BUYER                                    SELLER
+
+_____________________________            _____________________________
+${buyerName}                             ${form.seller_name || '[Seller Name]'}
 Clear Path Properties LLC
-${buyerPhone ? `📞 ${buyerPhone}` : ''}
-${buyerEmail ? `✉️ ${buyerEmail}` : ''}
+dba Clear Path Home Buyers
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SELLER ACKNOWLEDGMENT (optional)
+_____________________________            _____________________________
+Signature                                Signature
 
-I/We have reviewed this Letter of Intent and agree to move forward with a formal Purchase Agreement.
+_____________________________            _____________________________
+Date                                     Date
+${buyerPhone ? `\n📞 ${buyerPhone}` : ''}${buyerEmail ? `\n✉️  ${buyerEmail}` : ''}
 
-Seller Signature: _________________________ Date: ___________
-
-Printed Name: _________________________`;
-  };
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This is a non-binding Letter of Intent only. Consult a licensed real estate 
+attorney before signing any binding agreement.
+Clear Path Properties LLC  |  clearpath-home-buyers.vercel.app`;
 
   const handleSendEmail = () => {
-    const loi = generateLOI();
-    const subject = `Cash Offer — ${form.property_address}, ${form.city}, ${form.state}`;
-    const body = encodeURIComponent(loi);
-    const to = form.seller_email || '';
-    window.open(`mailto:${to}?subject=${encodeURIComponent(subject)}&body=${body}`);
+    const subject = `Cash Offer — ${form.property_address}, ${form.city}, ${form.state} | Clear Path Properties LLC`;
+    window.open(`mailto:${form.seller_email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(generateLOI())}`);
     setSent(true);
   };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(generateLOI());
-    alert('LOI copied to clipboard — paste into a text or email');
+    alert('✅ LOI copied to clipboard — paste into a text or email');
   };
 
   const activeLeads = leads.filter(l => l.status !== 'Dead');
 
   return (
-    <div className="fade-in" style={{ padding: 24, maxWidth: 900 }}>
+    <div className="fade-in" style={{ padding: 24, maxWidth: 1000 }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>LOI Generator</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>
-          As-Is Cash Offer — Letter of Intent
-        </p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>As-Is Cash Purchase — Letter of Intent</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: 20 }}>
 
         {/* Left — Form */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
           {/* Pull from lead */}
           <div className="card">
@@ -142,55 +174,56 @@ Printed Name: _________________________`;
                 <select className="form-select" value={selectedLeadId} onChange={e => fillFromLead(e.target.value)}>
                   <option value="">— Choose a lead —</option>
                   {activeLeads.map(l => (
-                    <option key={l.id} value={l.id}>
-                      {l.property_address}, {l.city} {l.state}
-                    </option>
+                    <option key={l.id} value={l.id}>{l.property_address}, {l.city} {l.state}</option>
                   ))}
                 </select>
               </div>
             </div>
           </div>
 
-          {/* Offer terms */}
+          {/* Offer Terms */}
           <div className="card">
             <div className="card-header"><h2 style={{ fontSize: 14, fontWeight: 700 }}>💰 Offer Terms</h2></div>
             <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {[
-                { label: 'Offer Price ($)', field: 'offer_price', type: 'number', span: 2 },
-                { label: 'Earnest Money ($)', field: 'earnest_money', type: 'number' },
-                { label: 'Close in (days)', field: 'close_days', type: 'number' },
-                { label: 'Inspection Period (days)', field: 'inspection_days', type: 'number' },
-              ].map(f => (
-                <div key={f.field} className="form-group" style={f.span ? { gridColumn: `span ${f.span}` } : {}}>
-                  <label className="form-label">{f.label}</label>
-                  <input className="form-input" type={f.type} value={form[f.field]} onChange={e => update(f.field, e.target.value)} />
-                </div>
-              ))}
-              <div className="form-group" style={{ gridColumn: 'span 2', display: 'flex', gap: 16 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={form.as_is} onChange={e => update('as_is', e.target.checked)} />
-                  As-Is Purchase
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Offer Price ($) *</label>
+                <input className="form-input" type="number" value={form.offer_price} onChange={e => update('offer_price', e.target.value)} placeholder="35000" />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Earnest Money ($)</label>
+                <input className="form-input" type="number" value={form.earnest_money} onChange={e => update('earnest_money', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Close In (days)</label>
+                <input className="form-input" type="number" value={form.close_days} onChange={e => update('close_days', e.target.value)} />
+              </div>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Inspection Period (business days)</label>
+                <input className="form-input" type="number" value={form.inspection_days} onChange={e => update('inspection_days', e.target.value)} />
+              </div>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Property Type</label>
+                <select className="form-select" value={form.property_type} onChange={e => update('property_type', e.target.value)}>
+                  {['Single Family Residential','Multi-Family','Condo','Townhouse','Land'].map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
                   <input type="checkbox" checked={form.assignment} onChange={e => update('assignment', e.target.checked)} />
-                  Assignment Clause
+                  Include Assignment Clause
                 </label>
               </div>
             </div>
           </div>
 
-          {/* Seller info */}
+          {/* Seller Info */}
           <div className="card">
             <div className="card-header"><h2 style={{ fontSize: 14, fontWeight: 700 }}>👤 Seller Info</h2></div>
             <div className="card-body" style={{ display: 'grid', gap: 12 }}>
-              {[
-                { label: 'Seller Name', field: 'seller_name' },
-                { label: 'Seller Email', field: 'seller_email' },
-                { label: 'Seller Phone', field: 'seller_phone' },
-              ].map(f => (
-                <div key={f.field} className="form-group">
-                  <label className="form-label">{f.label}</label>
-                  <input className="form-input" value={form[f.field]} onChange={e => update(f.field, e.target.value)} />
+              {[['seller_name','Seller Name'],['seller_email','Seller Email'],['seller_phone','Seller Phone']].map(([f,l]) => (
+                <div key={f} className="form-group">
+                  <label className="form-label">{l}</label>
+                  <input className="form-input" value={form[f]} onChange={e => update(f, e.target.value)} />
                 </div>
               ))}
             </div>
@@ -200,17 +233,22 @@ Printed Name: _________________________`;
           <div className="card">
             <div className="card-header"><h2 style={{ fontSize: 14, fontWeight: 700 }}>🏠 Property</h2></div>
             <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {[
-                { label: 'Address', field: 'property_address', span: 2 },
-                { label: 'City', field: 'city' },
-                { label: 'State', field: 'state' },
-                { label: 'ZIP', field: 'zip' },
-              ].map(f => (
-                <div key={f.field} className="form-group" style={f.span ? { gridColumn: `span ${f.span}` } : {}}>
-                  <label className="form-label">{f.label}</label>
-                  <input className="form-input" value={form[f.field]} onChange={e => update(f.field, e.target.value)} />
-                </div>
-              ))}
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label className="form-label">Address</label>
+                <input className="form-input" value={form.property_address} onChange={e => update('property_address', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">City</label>
+                <input className="form-input" value={form.city} onChange={e => update('city', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">State</label>
+                <input className="form-input" value={form.state} onChange={e => update('state', e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">ZIP</label>
+                <input className="form-input" value={form.zip} onChange={e => update('zip', e.target.value)} />
+              </div>
             </div>
           </div>
 
@@ -218,66 +256,63 @@ Printed Name: _________________________`;
           <div className="card">
             <div className="card-header"><h2 style={{ fontSize: 14, fontWeight: 700 }}>📝 Additional Notes</h2></div>
             <div className="card-body">
-              <textarea className="form-textarea" value={form.notes} onChange={e => update('notes', e.target.value)} placeholder="Any special terms or notes to include..." />
+              <textarea className="form-textarea" value={form.notes} onChange={e => update('notes', e.target.value)} placeholder="Any special terms or notes..." />
             </div>
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-outline" onClick={() => setPreview(!preview)}>
-              {preview ? '🙈 Hide Preview' : '👁️ Preview LOI'}
+              {preview ? '🙈 Hide' : '👁️ Preview'}
             </button>
-            <button className="btn btn-primary" onClick={handleCopy}>
-              📋 Copy LOI
-            </button>
-            <button className="btn btn-gold btn-lg" onClick={handleSendEmail} disabled={!form.offer_price}>
+            <button className="btn btn-primary" onClick={handleCopy}>📋 Copy LOI</button>
+            <button className="btn btn-gold" onClick={handleSendEmail} disabled={!form.offer_price} style={{ flex: 1, justifyContent: 'center' }}>
               📧 Send Offer Email
             </button>
           </div>
 
           {sent && (
             <div style={{ padding: 12, background: '#D1FAE5', borderRadius: 8, fontSize: 13, color: '#059669', fontWeight: 500 }}>
-              ✅ Email client opened with your LOI. Review and hit send!
+              ✅ Email client opened — review and hit send!
             </div>
           )}
-
           {!form.seller_email && form.offer_price && (
-            <div style={{ padding: 12, background: '#FEF3C7', borderRadius: 8, fontSize: 12, color: '#92400E' }}>
-              💡 No seller email — use "Copy LOI" to paste into a text message or your email manually.
+            <div style={{ padding: 10, background: '#FEF3C7', borderRadius: 8, fontSize: 12, color: '#92400E' }}>
+              💡 No seller email — use Copy LOI and paste into a text or email manually
             </div>
           )}
         </div>
 
         {/* Right — Preview */}
         <div>
-          {preview && (
+          {preview && form.offer_price ? (
             <div className="card" style={{ position: 'sticky', top: 20 }}>
               <div className="card-header">
                 <h2 style={{ fontSize: 14, fontWeight: 700 }}>LOI Preview</h2>
                 <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Clear Path Properties LLC</span>
               </div>
-              <div className="card-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                <pre style={{
-                  whiteSpace: 'pre-wrap', fontFamily: 'DM Sans', fontSize: 12,
-                  lineHeight: 1.8, color: 'var(--text-primary)'
-                }}>
-                  {form.offer_price ? generateLOI() : 'Enter an offer price to preview your LOI'}
+              <div style={{ maxHeight: '75vh', overflowY: 'auto', padding: 20 }}>
+                <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'DM Sans', fontSize: 12, lineHeight: 1.8, color: 'var(--text-primary)' }}>
+                  {generateLOI()}
                 </pre>
               </div>
+              <div style={{ padding: '12px 20px', borderTop: '1px solid var(--gray-100)', display: 'flex', gap: 8 }}>
+                <button className="btn btn-outline btn-sm" onClick={handleCopy}>📋 Copy</button>
+                <button className="btn btn-gold btn-sm" onClick={handleSendEmail}>📧 Send</button>
+              </div>
             </div>
-          )}
-
-          {!preview && (
-            <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>📄</div>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Your LOI will appear here</div>
-              <div style={{ fontSize: 13 }}>Fill in the offer terms and click Preview LOI</div>
-              <div style={{ marginTop: 24, padding: 16, background: 'var(--gray-100)', borderRadius: 10, textAlign: 'left', fontSize: 12 }}>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>Quick steps:</div>
-                <div>1. Select a lead to auto-fill the form</div>
-                <div>2. Set your offer price</div>
-                <div>3. Add seller email if you have it</div>
-                <div>4. Click Send Offer Email or Copy LOI</div>
+          ) : (
+            <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: 56, marginBottom: 16 }}>📄</div>
+              <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Your LOI will appear here</div>
+              <div style={{ fontSize: 13, marginBottom: 24 }}>Fill in the offer terms and click Preview</div>
+              <div style={{ padding: 16, background: 'var(--gray-100)', borderRadius: 10, textAlign: 'left', fontSize: 13, maxWidth: 280, margin: '0 auto' }}>
+                <div style={{ fontWeight: 600, marginBottom: 10, color: 'var(--navy)' }}>Quick steps:</div>
+                <div style={{ marginBottom: 6 }}>1. Select a lead to auto-fill</div>
+                <div style={{ marginBottom: 6 }}>2. Set your offer price</div>
+                <div style={{ marginBottom: 6 }}>3. Add seller email if you have it</div>
+                <div style={{ marginBottom: 6 }}>4. Click Preview LOI</div>
+                <div>5. Send or copy</div>
               </div>
             </div>
           )}
