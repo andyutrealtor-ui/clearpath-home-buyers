@@ -6,7 +6,7 @@ const saveUsers = (u) => localStorage.setItem(USERS_KEY, JSON.stringify(u));
 
 export default function Team({ currentUser }) {
   const [users, setUsers] = useState(getUsers());
-  const [showAdd, setShowAdd] = useState(false);
+  const [view, setView] = useState('list');
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'viewer' });
   const [error, setError] = useState('');
 
@@ -31,7 +31,7 @@ export default function Team({ currentUser }) {
     saveUsers(updated);
     setUsers(updated);
     setForm({ name: '', email: '', password: '', role: 'viewer' });
-    setShowAdd(false);
+    setView('list');
   };
 
   const removeUser = (id) => {
@@ -50,12 +50,12 @@ export default function Team({ currentUser }) {
 
   return (
     <div className="fade-in" style={{ padding: 24, maxWidth: 700 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      {view === 'list' && <><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 800 }}>Team Members</h1>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{users.length} account{users.length !== 1 ? 's' : ''}</p>
         </div>
-        <button className="btn btn-gold" onClick={() => setShowAdd(true)}>+ Add Member</button>
+        <button className="btn btn-gold" onClick={() => setView('add')}>+ Add Member</button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -90,37 +90,34 @@ export default function Team({ currentUser }) {
         ))}
       </div>
 
-      {showAdd && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
-          <div className="modal fade-in">
-            <div className="modal-header">
-              <h2 style={{ fontSize: 16, fontWeight: 700 }}>Add Team Member</h2>
-              <button className="btn btn-ghost btn-sm" onClick={() => setShowAdd(false)}>✕</button>
-            </div>
-            <div className="modal-body">
-              <div style={{ display: 'grid', gap: 14 }}>
-                {[['name','Full Name','text'],['email','Email','email'],['password','Password','password']].map(([f,l,t]) => (
-                  <div key={f} className="form-group">
-                    <label className="form-label">{l}</label>
-                    <input className="form-input" type={t} value={form[f]} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))} />
-                  </div>
-                ))}
-                <div className="form-group">
-                  <label className="form-label">Role</label>
-                  <select className="form-select" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}>
-                    <option value="viewer">Viewer — can see leads, cannot delete or change settings</option>
-                    <option value="admin">Admin — full access</option>
-                  </select>
-                </div>
-                {error && <div style={{ color: '#DC2626', fontSize: 13 }}>⚠️ {error}</div>}
-                <div style={{ padding: 12, background: 'var(--gray-100)', borderRadius: 8, fontSize: 12, color: 'var(--text-muted)' }}>
-                  Share the app URL + these login credentials with your team member.
-                </div>
+      </>}
+    {view === 'add' && (
+        <div className="fade-in" style={{ maxWidth: 500, marginTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+            <button className="btn btn-outline btn-sm" onClick={() => { setView('list'); setError(''); setForm({ name: '', email: '', password: '', role: 'viewer' }); }}>← Back</button>
+            <h2 style={{ fontSize: 18, fontWeight: 700 }}>Add Team Member</h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {[['name','Full Name','text','e.g. Jane Smith'],['email','Email Address','email','jane@email.com'],['password','Password','password','Min 6 characters']].map(([f,l,t,ph]) => (
+              <div key={f} className="form-group">
+                <label className="form-label">{l}</label>
+                <input className="form-input" type={t} placeholder={ph} value={form[f]} onChange={e => setForm(p => ({ ...p, [f]: e.target.value }))} />
               </div>
+            ))}
+            <div className="form-group">
+              <label className="form-label">Role</label>
+              <select className="form-select" value={form.role} onChange={e => setForm(p => ({ ...p, role: e.target.value }))}>
+                <option value="viewer">Viewer — can see leads, cannot delete or change settings</option>
+                <option value="admin">Admin — full access to everything</option>
+              </select>
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-outline" onClick={() => setShowAdd(false)}>Cancel</button>
-              <button className="btn btn-gold" onClick={addUser}>Add Member</button>
+            {error && <div style={{ padding: 10, background: '#FEE2E2', borderRadius: 8, color: '#DC2626', fontSize: 13 }}>⚠️ {error}</div>}
+            <div style={{ padding: 14, background: 'var(--gray-100)', borderRadius: 10, fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+              💡 After adding, share <strong>clearpath-home-buyers.vercel.app</strong> along with their email and password so they can log in.
+            </div>
+            <div style={{ display: 'flex', gap: 10, paddingTop: 8, borderTop: '1px solid var(--gray-200)' }}>
+              <button className="btn btn-outline" onClick={() => { setView('list'); setError(''); setForm({ name: '', email: '', password: '', role: 'viewer' }); }}>Cancel</button>
+              <button className="btn btn-gold btn-lg" onClick={addUser}>Add Team Member</button>
             </div>
           </div>
         </div>
