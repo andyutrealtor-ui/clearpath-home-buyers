@@ -105,12 +105,12 @@ export function Buyers({ buyers, setBuyers }) {
 
       {showAdd && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
-          <div className="modal fade-in" style={{ maxWidth: 780 }}>
+          <div className="modal fade-in" style={{ maxWidth: 780, maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
             <div className="modal-header">
               <h2 style={{ fontSize: 16, fontWeight: 700 }}>Add Cash Buyer</h2>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowAdd(false)}>✕</button>
             </div>
-            <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+            <div className="modal-body" style={{ overflowY: "auto", flex: 1 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
                 {/* Contact Info */}
