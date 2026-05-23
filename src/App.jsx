@@ -22,18 +22,10 @@ const defaultSettings = {
 
 export default function App() {
   const [page, setPage] = useState('dashboard');
+  const [selectedLead, setSelectedLead] = useState(null);
   const [currentUser, setCurrentUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('clearpath_session')); } catch { return null; }
   });
-
-  const handleLogin = (user) => setCurrentUser(user);
-  const handleLogout = () => {
-    localStorage.removeItem('clearpath_session');
-    setCurrentUser(null);
-  };
-
-  if (!currentUser) return <Login onLogin={handleLogin} />;
-  const [selectedLead, setSelectedLead] = useState(null);
   const [leads, setLeads] = useState(() => {
     try {
       const saved = localStorage.getItem(LEADS_KEY);
@@ -56,6 +48,14 @@ export default function App() {
   useEffect(() => { localStorage.setItem(LEADS_KEY, JSON.stringify(leads)); }, [leads]);
   useEffect(() => { localStorage.setItem(BUYERS_KEY, JSON.stringify(buyers)); }, [buyers]);
   useEffect(() => { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }, [settings]);
+
+  const handleLogin = (user) => setCurrentUser(user);
+  const handleLogout = () => {
+    localStorage.removeItem('clearpath_session');
+    setCurrentUser(null);
+  };
+
+  if (!currentUser) return <Login onLogin={handleLogin} />;
 
   const renderPage = () => {
     switch (page) {
