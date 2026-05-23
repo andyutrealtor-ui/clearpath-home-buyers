@@ -73,11 +73,45 @@ export function Buyers({ buyers, setBuyers }) {
     if (window.confirm('Remove this buyer?')) setBuyers(prev => prev.filter(b => b.id !== id));
   };
 
+  const editBuyer = (buyer) => {
+    setForm({
+      name: buyer.name || '',
+      company: buyer.company || '',
+      phone: buyer.phone || '',
+      email: buyer.email || '',
+      website: buyer.website || '',
+      states: buyer.states || [],
+      property_types: buyer.property_types || [],
+      min_price: buyer.min_price || '',
+      max_price: buyer.max_price || '',
+      condition: buyer.condition || 'As-Is',
+      close_days: buyer.close_days || '14',
+      funding: buyer.funding || 'Cash',
+      deal_types: buyer.deal_types || [],
+      tag: buyer.tag || 'Active',
+      notes: buyer.notes || '',
+      _editId: buyer.id,
+    });
+    setView('add');
+  };
+
+  const saveEdit = () => {
+    if (!form.name) { alert('Please enter a name.'); return; }
+    setBuyers(prev => prev.map(b => b.id === form._editId ? {
+      ...b, ...form, min_price: +form.min_price || 0, max_price: +form.max_price || 0,
+      close_days: +form.close_days || 14,
+    } : b));
+    setView('list');
+    setForm({ name: '', company: '', phone: '', email: '', website: '', states: [], property_types: [], min_price: '', max_price: '', condition: 'As-Is', close_days: '14', funding: 'Cash', deal_types: [], tag: 'Active', notes: '' });
+  };
+
+  const isEditing = !!form._editId;
+
   if (view === 'add') return (
     <div className="fade-in" style={{ padding: 24, maxWidth: 760 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <button className="btn btn-outline btn-sm" onClick={() => setView('list')}>← Back</button>
-        <h2 style={{ fontSize: 18, fontWeight: 700 }}>Add Cash Buyer</h2>
+        <button className="btn btn-outline btn-sm" onClick={() => { setView('list'); setForm({ name: '', company: '', phone: '', email: '', website: '', states: [], property_types: [], min_price: '', max_price: '', condition: 'As-Is', close_days: '14', funding: 'Cash', deal_types: [], tag: 'Active', notes: '' }); }}>← Back</button>
+        <h2 style={{ fontSize: 18, fontWeight: 700 }}>{isEditing ? 'Edit Cash Buyer' : 'Add Cash Buyer'}</h2>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
@@ -188,7 +222,7 @@ export function Buyers({ buyers, setBuyers }) {
 
         <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 10, marginTop: 8, paddingTop: 20, borderTop: '1px solid var(--gray-200)' }}>
           <button className="btn btn-outline" onClick={() => setView('list')}>Cancel</button>
-          <button className="btn btn-gold btn-lg" onClick={addBuyer}>Add Buyer</button>
+          <button className="btn btn-gold btn-lg" onClick={isEditing ? saveEdit : addBuyer}>{isEditing ? 'Save Changes' : 'Add Buyer'}</button>
         </div>
       </div>
     </div>
@@ -249,7 +283,8 @@ export function Buyers({ buyers, setBuyers }) {
                   {b.notes && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6, fontStyle: 'italic' }}>{b.notes}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                  <a href={`tel:${b.phone}`} className="btn btn-gold btn-sm">📞 Call</a>
+                  {b.phone && <a href={`tel:${b.phone}`} className="btn btn-gold btn-sm">📞 Call</a>}
+                  <button className="btn btn-outline btn-sm" onClick={() => editBuyer(b)}>✏️ Edit</button>
                   <button className="btn btn-danger btn-sm" onClick={() => removeBuyer(b.id)}>✕</button>
                 </div>
               </div>
