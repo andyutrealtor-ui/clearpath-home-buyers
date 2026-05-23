@@ -35,7 +35,9 @@ export default function App() {
   const [buyers, setBuyers] = useState(() => {
     try {
       const saved = localStorage.getItem(BUYERS_KEY);
-      return saved ? JSON.parse(saved) : initialBuyers;
+      const parsed = saved ? JSON.parse(saved) : [];
+      // If empty, load from seed data
+      return parsed.length > 0 ? parsed : initialBuyers;
     } catch { return initialBuyers; }
   });
   const [settings, setSettings] = useState(() => {

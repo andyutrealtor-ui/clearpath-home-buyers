@@ -198,7 +198,15 @@ export function Buyers({ buyers, setBuyers }) {
     <div className="fade-in" style={{ padding: 24, maxWidth: 900 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>Cash Buyers <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 400 }}>({buyers.length})</span></h1>
-        <button className="btn btn-gold" onClick={() => setView('add')}>+ Add Buyer</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {buyers.length === 0 && (
+            <button className="btn btn-outline btn-sm" onClick={() => {
+              localStorage.removeItem('clearpath_buyers');
+              window.location.reload();
+            }}>🔄 Reload Buyers</button>
+          )}
+          <button className="btn btn-gold" onClick={() => setView('add')}>+ Add Buyer</button>
+        </div>
       </div>
 
       {buyers.length === 0 ? (
