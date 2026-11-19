@@ -21,16 +21,19 @@ export default async function handler(req, res) {
   const key = process.env.RENTCAST_API_KEY;
   if (!key) return res.status(500).json({ error: 'RENTCAST_API_KEY is not set in Vercel environment variables.' });
 
-  const { city, state, daysOld = '50:*', limit = 500 } = req.body || {};
+  const { city, state, daysOld = '50:59', price = '*:400000', limit = 500 } = req.body || {};
   if (!STATES.has(state)) return res.status(400).json({ error: 'state must be one of UT, TX, CO, AZ' });
   if (!city || typeof city !== 'string') return res.status(400).json({ error: 'city required' });
-  if (!/^(\d+|\*):(\d+|\*)$|^\d+$/.test(String(daysOld))) return res.status(400).json({ error: 'bad daysOld range' });
+  const RANGE = /^(\d+|\*):(\d+|\*)$|^\d+$/;
+  if (!RANGE.test(String(daysOld))) return res.status(400).json({ error: 'bad daysOld range' });
+  if (!RANGE.test(String(price))) return res.status(400).json({ error: 'bad price range' });
 
   const params = new URLSearchParams({
     city,
     state,
     status: 'Active',
     daysOld: String(daysOld),
+    price: String(price),
     propertyType: PROPERTY_TYPES,
     limit: String(Math.min(Math.max(Number(limit) || 50, 1), 500)),
   });

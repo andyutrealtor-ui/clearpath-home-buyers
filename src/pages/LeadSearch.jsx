@@ -14,6 +14,7 @@ const STATE_INFO = {
   AZ: { name: 'Arizona', city: 'Phoenix' },
 };
 const MAX_PER_STATE = 25;
+const MAX_PRICE = 400000; // cash-offer ceiling
 
 // 50–59 days on market: the listing is about to hit the usual 60-day price-cut conversation.
 export const inPriceCutWindow = (lead) => {
@@ -97,7 +98,7 @@ export default function LeadSearch({ leads, setLeads, settings }) {
         const res = await fetch('/api/rentcast', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ city, state, daysOld: '50:59', limit: 500 }),
+          body: JSON.stringify({ city, state, daysOld: '50:59', price: `*:${MAX_PRICE}`, limit: 500 }),
         });
         const json = await res.json();
         if (!res.ok || json.error) { addLog(`❌ RentCast error: ${json.error || res.status}`); continue; }
