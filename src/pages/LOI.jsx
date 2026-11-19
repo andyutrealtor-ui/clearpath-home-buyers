@@ -27,7 +27,7 @@ export default function LOI({ deal = {}, settings }) {
   const refillFromDeal = () => setForm(p => ({ ...p, ...fromDeal(deal) }));
   const toWho = form.agent_listed ? 'Listing Agent' : 'Seller';
 
-  const buyerName = settings?.name || 'Andy Johnson';
+  const buyerName = settings?.name || '[Your Name — set it in Settings]';
   const buyerPhone = settings?.phone || '';
   const buyerEmail = settings?.email || '';
 

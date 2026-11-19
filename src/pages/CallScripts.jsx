@@ -16,7 +16,7 @@ export default function CallScripts({ deal = {}, settings }) {
   const [error, setError] = useState('');
 
   const mao = calcMAO({ arv: deal.arv, repairs: deal.repairs, fee: deal.fee ?? 10000, pct: deal.pct ?? 70 });
-  const name = settings?.name?.split(' ')[0] || 'Andy';
+  const name = settings?.name?.split(' ')[0] || 'the caller';
 
   const generate = async () => {
     if (!settings?.apiKey) { setError('Add your Anthropic API key in Settings to generate scripts.'); return; }

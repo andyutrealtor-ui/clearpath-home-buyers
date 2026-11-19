@@ -14,7 +14,7 @@ const SETTINGS_KEY = 'clearpath_settings';
 const DEAL_KEY = 'clearpath_deal';
 
 const defaultSettings = {
-  name: 'Andy Johnson', phone: '', email: '',
+  name: '', phone: '', email: '',
   leadCap: 5, callStart: '07:00', callEnd: '20:00',
   activeStates: ['TX', 'UT', 'CO', 'AZ']
 };
