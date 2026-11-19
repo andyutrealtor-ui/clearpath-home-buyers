@@ -95,11 +95,11 @@ export default function Login({ onLogin }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="form-group">
                   <label className="form-label">Your Name</label>
-                  <input className="form-input" placeholder="Andy Johnson" value={form.name} onChange={e => update('name', e.target.value)} />
+                  <input className="form-input" placeholder="Full name" value={form.name} onChange={e => update('name', e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Email</label>
-                  <input className="form-input" type="email" placeholder="andy@email.com" value={form.email} onChange={e => update('email', e.target.value)} />
+                  <input className="form-input" type="email" placeholder="you@example.com" value={form.email} onChange={e => update('email', e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Password</label>
