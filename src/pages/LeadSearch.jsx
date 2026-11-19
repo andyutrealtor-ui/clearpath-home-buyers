@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 
 const SEARCH_TYPES = [
   { id: 'pricecut', label: 'Price-Cut Window', icon: '⏳', color: '#0EA5E9', bg: '#E0F2FE', desc: '50–59 days on market — right before the price-cut talk' },
-  { id: 'stale', label: 'Stale Listings', icon: '📅', color: '#F59E0B', bg: '#FEF3C7', desc: '90+ days on market, price reductions' },
-  { id: 'preforeclosure', label: 'Pre-Foreclosure', icon: '🏚️', color: '#EF4444', bg: '#FEE2E2', desc: 'Pre-foreclosure, short sale, auction listings' },
-  { id: 'abandoned', label: 'Distressed / As-Is', icon: '🪟', color: '#8B5CF6', bg: '#EDE9FE', desc: 'As-is, vacant, fixer-upper, cash-only listings' },
+  { id: 'stale', label: 'Stale Listings', icon: '📅', color: '#F59E0B', bg: '#FEF3C7', desc: '90+ days on market, or any price reduction' },
+  { id: 'preforeclosure', label: 'Foreclosure / Short Sale', icon: '🏚️', color: '#EF4444', bg: '#FEE2E2', desc: 'Listed as foreclosure, bank-owned or short sale' },
 ];
 
 const STATES = ['UT', 'TX', 'CO', 'AZ'];
@@ -14,13 +13,7 @@ const STATE_INFO = {
   CO: { name: 'Colorado', city: 'Denver' },
   AZ: { name: 'Arizona', city: 'Phoenix' },
 };
-
-const CRITERIA = {
-  pricecut: 'have been on the market between 50 and 59 days (the listing page shows 50–59 days on market), ideally with no price cut yet',
-  stale: 'have been on the market 90 or more days, or have had one or more price reductions',
-  preforeclosure: 'are listed as pre-foreclosure, short sale, bank-owned, or auction',
-  abandoned: 'are described as as-is, vacant, fixer-upper, cash only, TLC, or investor special',
-};
+const MAX_PER_STATE = 25;
 
 // 50–59 days on market: the listing is about to hit the usual 60-day price-cut conversation.
 export const inPriceCutWindow = (lead) => {
@@ -28,50 +21,54 @@ export const inPriceCutWindow = (lead) => {
   return lead?.days_on_market != null && lead?.days_on_market !== '' && d >= 50 && d <= 59;
 };
 
-function parseLeads(text) {
-  const strategies = [
-    () => JSON.parse(text.trim()),
-    () => JSON.parse(text.replace(/```json|```/g, '').trim()),
-    () => JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1)),
-    () => { const m = text.match(/\{[\s\S]*?"leads"[\s\S]*\}/); return m ? JSON.parse(m[0]) : null; },
-    () => { const m = text.match(/\[[\s\S]*\]/); return m ? { leads: JSON.parse(m[0]) } : null; },
-  ];
-  for (const s of strategies) {
-    try { const r = s(); if (r) return r; } catch { continue; }
-  }
-  return null;
+const DISTRESS_TYPES = /foreclos|short\s*sale|bank|reo|auction/i;
+
+// Price changes for the current listing period, from RentCast's history (keyed by date).
+export function priceHistory(listing) {
+  const entries = Object.entries(listing?.history || {})
+    .map(([date, e]) => ({ date, ...e }))
+    .filter(e => !listing.listedDate || !e.listedDate || e.listedDate === listing.listedDate)
+    .filter(e => Number.isFinite(e.price))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const prices = entries.map(e => e.price);
+  if (Number.isFinite(listing?.price)) prices.push(listing.price);
+  let drops = 0;
+  for (let i = 1; i < prices.length; i++) if (prices[i] < prices[i - 1]) drops++;
+  const original = prices.length ? prices[0] : null;
+  return { original, drops, cutPct: original && listing.price < original ? (original - listing.price) / original : 0 };
 }
 
-// host + path, no www, query, hash or trailing slash — so URL variants still match.
-function normUrl(u) {
-  try {
-    const x = new URL(u);
-    return (x.hostname.replace(/^www\./, '') + x.pathname.replace(/\/+$/, '')).toLowerCase();
-  } catch { return null; }
+export function daysOnMarket(listing) {
+  if (Number.isFinite(listing?.daysOnMarket)) return listing.daysOnMarket;
+  if (!listing?.listedDate) return null;
+  return Math.floor((Date.now() - new Date(listing.listedDate).getTime()) / 86400000);
 }
 
-// Every URL the web search actually returned or cited in this response.
-function collectSearchedUrls(content = []) {
-  const urls = new Set();
-  for (const b of content) {
-    if (b.type === 'web_search_tool_result' && Array.isArray(b.content)) {
-      b.content.forEach(r => { const n = r.url && normUrl(r.url); if (n) urls.add(n); });
-    }
-    if (b.type === 'text' && Array.isArray(b.citations)) {
-      b.citations.forEach(c => { const n = c.url && normUrl(c.url); if (n) urls.add(n); });
-    }
-  }
-  return urls;
+// Same rubric as the daily HubSpot task: start at 5, add for time on market, cuts and distress.
+export function motivationScore(dom, ph, distressed) {
+  let s = 5;
+  if (dom >= 90) s += 2; else if (dom >= 50) s += 1;
+  s += Math.min(ph.drops, 2);
+  if (ph.cutPct >= 0.10) s += 1;
+  if (distressed) s += 1;
+  return Math.min(10, s);
 }
 
-const toNum = (v) => {
-  if (v == null || v === '') return null;
-  const n = Number(String(v).replace(/[^0-9.]/g, ''));
-  return Number.isFinite(n) ? n : null;
-};
+export function categorize(listing) {
+  const dom = daysOnMarket(listing);
+  const ph = priceHistory(listing);
+  const distressed = DISTRESS_TYPES.test(listing?.listingType || '');
+  let type = null;
+  if (distressed) type = 'preforeclosure';
+  else if (dom != null && dom >= 50 && dom <= 59) type = 'pricecut';
+  else if ((dom != null && dom >= 90) || ph.drops > 0) type = 'stale';
+  return { type, dom, ph, distressed };
+}
+
+const money = (n) => Number.isFinite(n) ? '$' + n.toLocaleString() : '?';
 
 export default function LeadSearch({ leads, setLeads, settings }) {
-  const [selectedTypes, setSelectedTypes] = useState(['pricecut', 'stale']);
+  const [selectedTypes, setSelectedTypes] = useState(['pricecut', 'stale', 'preforeclosure']);
   const [selectedStates, setSelectedStates] = useState(settings?.activeStates || ['TX', 'UT', 'CO', 'AZ']);
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState([]);
@@ -79,106 +76,85 @@ export default function LeadSearch({ leads, setLeads, settings }) {
   const [done, setDone] = useState(false);
   const [windowOnly, setWindowOnly] = useState(false);
 
-  const apiKey = settings?.apiKey;
+  // RentCast's key lives on the server (Vercel env var), so no browser API key is needed here.
 
   const toggleType = (id) => setSelectedTypes(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id]);
   const toggleState = (s) => setSelectedStates(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s]);
   const addLog = (msg) => setLog(p => [...p, { msg, time: new Date().toLocaleTimeString() }]);
 
-  const buildPrompt = (type, state, typeName) => {
-    const { name: stateName, city } = STATE_INFO[state];
-    return `Use web search to find up to 3 REAL, currently active for-sale home listings in the ${city}, ${stateName} metro area that ${CRITERIA[type]}. Search public listing sites such as Zillow, Redfin, Realtor.com, Homes.com and local brokerage sites.
-
-Rules — follow them exactly:
-- Only include a property if you found its actual listing page in your search results. Never invent or guess an address, price, days on market, or agent detail.
-- listing_url must be the exact URL of the listing page you found.
-- days_on_market: the number shown on the listing, or null if it is not shown. Do not estimate it.
-- listing_agent_* fields: only what the listing page shows; otherwise "".
-- price_drops: number of price reductions shown on the listing, or null.
-- keywords: words from the listing description that signal motivation (e.g. "as-is", "motivated", "cash only", "price reduced").
-- urgency_score: 1–10 for how motivated the seller likely is, based on days on market, price drops and those keywords.
-- If nothing qualifies, return {"leads":[]}.
-
-After searching, end your reply with ONLY this JSON:
-{"leads":[{"property_address":"string","city":"string","state":"${state}","zip":"string","asking_price":number,"days_on_market":number|null,"price_drops":number|null,"listing_url":"string","source_site":"string","listing_agent_name":"string","listing_agent_brokerage":"string","listing_agent_phone":"string","listing_agent_email":"string","keywords":["string"],"urgency_score":number,"seller_summary":"one sentence from what the listing says"}]}`;
-  };
-
   const runSearch = async () => {
-    if (!apiKey) { alert('Add your Anthropic API key in Settings first.'); return; }
     if (!selectedTypes.length) { alert('Select at least one search type.'); return; }
     if (!selectedStates.length) { alert('Select at least one state.'); return; }
 
     setRunning(true); setResults([]); setLog([]); setDone(false);
     const allResults = [];
-    const seen = new Set();
 
+    // One RentCast request per state (all listings 50+ days old), then sorted into types here.
     for (const state of selectedStates) {
-      for (const type of selectedTypes) {
-        const typeName = SEARCH_TYPES.find(t => t.id === type)?.label;
-        addLog(`🔍 Searching the web for ${typeName} in ${state}...`);
-        try {
-          const res = await fetch('/api/claude', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey, useSearch: true, maxSearches: 5, maxTokens: 3000, prompt: buildPrompt(type, state, typeName) })
+      const { city } = STATE_INFO[state];
+      addLog(`🔍 Pulling active listings in ${city}, ${state} from RentCast...`);
+      try {
+        const res = await fetch('/api/rentcast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ city, state, daysOld: '50:*', limit: 500 }),
+        });
+        const json = await res.json();
+        if (!res.ok || json.error) { addLog(`❌ RentCast error: ${json.error || res.status}`); continue; }
+
+        const counts = { pricecut: 0, stale: 0, preforeclosure: 0 };
+        const found = [];
+        for (const l of json.listings || []) {
+          const c = categorize(l);
+          if (!c.type || !selectedTypes.includes(c.type)) continue;
+          counts[c.type]++;
+          const typeName = SEARCH_TYPES.find(t => t.id === c.type).label;
+          const agent = l.listingAgent || {};
+          const office = l.listingOffice || {};
+          const address = l.formattedAddress || [l.addressLine1, l.city, l.state, l.zipCode].filter(Boolean).join(', ');
+          const cut = c.ph.original && l.price < c.ph.original
+            ? `${c.ph.drops || 1} price drop${c.ph.drops > 1 ? 's' : ''}: ${money(c.ph.original)} → ${money(l.price)} (−${(c.ph.cutPct * 100).toFixed(1)}%)`
+            : 'No price drops';
+          found.push({
+            id: l.id || Date.now() + Math.random(),
+            rentcast_id: l.id || '',
+            property_address: l.addressLine1 || address,
+            city: l.city || city, state: l.state || state, zip: l.zipCode || '',
+            asking_price: Number.isFinite(l.price) ? l.price : null,
+            days_on_market: c.dom,
+            price_drops: c.ph.drops,
+            original_price: c.ph.original,
+            listed_date: l.listedDate || '',
+            listing_type: l.listingType || '',
+            mls_number: l.mlsNumber || '', mls_name: l.mlsName || '',
+            listing_url: `https://www.zillow.com/homes/${encodeURIComponent(address)}_rb/`,
+            source_site: 'Zillow search',
+            listing_agent_name: agent.name || '',
+            listing_agent_brokerage: office.name || '',
+            listing_agent_phone: agent.phone || office.phone || '',
+            listing_agent_email: agent.email || '',
+            keywords: c.distressed && l.listingType ? [l.listingType] : [],
+            urgency_score: motivationScore(c.dom ?? 0, c.ph, c.distressed),
+            seller_summary: `${l.propertyType || 'Home'}${l.bedrooms ? `, ${l.bedrooms} bd` : ''}${l.bathrooms ? ` / ${l.bathrooms} ba` : ''}${l.squareFootage ? `, ${l.squareFootage.toLocaleString()} sqft` : ''}. ${cut}.`,
+            source: typeName,
+            source_verified: true,
+            price_cut_window: c.type === 'pricecut',
+            owner_name: 'Unknown', phone: '', email: '',
+            status: 'New',
+            date_added: new Date().toISOString(),
+            last_contacted: '', follow_up_date: '', follow_up_note: '', call_notes: '',
+            skip_trace_phone: '', skip_trace_email: '', skip_trace_confidence: '',
+            arv: null, repair_estimate: null, offer_made: null, mao: null,
+            equity_percent: null, auction_date: '', loan_amount: null,
+            days_to_auction: null, lender: '', filing_date: '',
           });
-          const json = await res.json();
-          if (json.error) { addLog("❌ API error: " + (json.error?.message || json.error)); continue; }
-
-          const content = json.content || [];
-          const textBlocks = content.filter(b => b.type === 'text').map(b => b.text);
-          // The JSON is at the end; earlier text blocks are search narration.
-          const parsed = parseLeads(textBlocks[textBlocks.length - 1] || '') || parseLeads(textBlocks.join(''));
-          if (!textBlocks.length) addLog("⚠️ Empty reply — stop_reason: " + json.stop_reason);
-
-          const searchedUrls = collectSearchedUrls(content);
-          const raw = parsed?.leads || [];
-          let noUrl = 0, outsideWindow = 0;
-
-          const newLeads = [];
-          for (const l of raw) {
-            if (!l.property_address || !/^https?:\/\//i.test(l.listing_url || '')) { noUrl++; continue; }
-            const lead = {
-              ...l,
-              asking_price: toNum(l.asking_price),
-              days_on_market: toNum(l.days_on_market),
-              price_drops: toNum(l.price_drops),
-              keywords: Array.isArray(l.keywords) ? l.keywords : [],
-              urgency_score: Math.max(1, Math.min(10, Math.round(toNum(l.urgency_score) || 5))),
-            };
-            // The price-cut search only keeps listings whose page shows 50–59 days.
-            if (type === 'pricecut' && !inPriceCutWindow(lead)) { outsideWindow++; continue; }
-            const key = (lead.property_address + lead.city).toLowerCase();
-            if (seen.has(key)) continue;
-            seen.add(key);
-            newLeads.push({
-              ...lead,
-              id: Date.now() + Math.random(),
-              source: typeName,
-              source_verified: searchedUrls.has(normUrl(lead.listing_url)),
-              price_cut_window: inPriceCutWindow(lead),
-              owner_name: 'Unknown',
-              phone: '',
-              email: '',
-              status: 'New',
-              date_added: new Date().toISOString(),
-              last_contacted: '', follow_up_date: '', follow_up_note: '', call_notes: '',
-              skip_trace_phone: '', skip_trace_email: '', skip_trace_confidence: '',
-              arv: null, repair_estimate: null, offer_made: null, mao: null,
-              equity_percent: null, auction_date: '', loan_amount: null,
-              days_to_auction: null, lender: '', filing_date: '',
-            });
-          }
-
-          allResults.push(...newLeads);
-          const notes = [noUrl && `${noUrl} skipped (no listing link)`, outsideWindow && `${outsideWindow} skipped (not 50–59 days)`].filter(Boolean).join(', ');
-          addLog(newLeads.length
-            ? `✅ Found ${newLeads.length} real listings in ${state}${notes ? ` — ${notes}` : ''}`
-            : `⚠️ No qualifying listings for ${typeName} in ${state}${notes ? ` — ${notes}` : ''}`);
-        } catch (e) {
-          addLog(`❌ Error: ${e.message}`);
         }
-        await new Promise(r => setTimeout(r, 12000));
+        found.sort((a, b) => b.urgency_score - a.urgency_score || (b.days_on_market ?? 0) - (a.days_on_market ?? 0));
+        const kept = found.slice(0, MAX_PER_STATE);
+        allResults.push(...kept);
+        addLog(`✅ ${state}: ${json.listings?.length || 0} listings checked — ${counts.pricecut} price-cut window, ${counts.stale} stale, ${counts.preforeclosure} foreclosure/short sale${found.length > kept.length ? ` (showing top ${kept.length})` : ''}`);
+      } catch (e) {
+        addLog(`❌ Error: ${e.message}`);
       }
     }
 
@@ -212,14 +188,8 @@ After searching, end your reply with ONLY this JSON:
     <div className="fade-in" style={{ padding: 24, maxWidth: 900 }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>Lead Search Engine</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>Searches public listing sites for real motivated-seller listings in your markets</p>
+        <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 2 }}>Pulls live MLS listings from RentCast and flags motivated sellers in your markets</p>
       </div>
-
-      {!apiKey && (
-        <div style={{ padding: 16, background: '#FEF3C7', borderRadius: 10, marginBottom: 20, fontSize: 13, color: '#92400E', border: '1px solid #FDE68A' }}>
-          ⚠️ <strong>API key required.</strong> Go to Settings and paste your Anthropic API key.
-        </div>
-      )}
 
       <div style={{ marginBottom: 20 }}>
         <div className="form-label" style={{ marginBottom: 10 }}>Search Types</div>
@@ -254,7 +224,7 @@ After searching, end your reply with ONLY this JSON:
         </div>
       </div>
 
-      <button className="btn btn-gold btn-lg" onClick={runSearch} disabled={running || !apiKey}
+      <button className="btn btn-gold btn-lg" onClick={runSearch} disabled={running}
         style={{ marginBottom: 24, width: '100%', justifyContent: 'center' }}>
         {running ? '🔍 Searching...' : '🚀 Run Lead Search'}
       </button>
@@ -292,9 +262,9 @@ After searching, end your reply with ONLY this JSON:
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 600, fontSize: 14 }}>{lead.property_address}, {lead.city}, {lead.state}</span>
-                      <span className={`badge badge-${lead.source === 'Pre-Foreclosure' ? 'red' : lead.source === 'Distressed / As-Is' ? 'purple' : 'amber'}`}>{lead.source}</span>
+                      <span className={`badge badge-${lead.source === 'Pre-Foreclosure' ? 'red' : lead.source === 'Foreclosure / Short Sale' ? 'red' : 'amber'}`}>{lead.source}</span>
                       {lead.price_cut_window && <span className="badge" style={{ background: '#E0F2FE', color: '#0369A1' }}>⏳ Price-cut window</span>}
-                      {!lead.source_verified && <span className="badge" style={{ background: '#FEF3C7', color: '#92400E' }} title="This link did not appear in the web search results. Open it and confirm the listing is real before adding.">⚠️ Check link</span>}
+                      {!lead.source_verified && <span className="badge" style={{ background: '#FEF3C7', color: '#92400E' }} title="Not confirmed by the listing feed. Open the listing and check it before adding.">⚠️ Check link</span>}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 6, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
                       {lead.asking_price != null && <span>💰 ${lead.asking_price.toLocaleString()}</span>}
