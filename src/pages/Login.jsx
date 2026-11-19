@@ -12,6 +12,18 @@ const getUsers = () => {
 
 const saveUsers = (users) => localStorage.setItem(USERS_KEY, JSON.stringify(users));
 
+// Ask the browser / password manager to save this login. Chrome and Edge show
+// their "Save password?" prompt; other browsers fall back to the <form> heuristics.
+const offerToSaveLogin = async (email, password, name) => {
+  try {
+    if (window.PasswordCredential && navigator.credentials?.store) {
+      await navigator.credentials.store(new window.PasswordCredential({ id: email, password, name: name || email }));
+    }
+  } catch { /* the user dismissed it or the browser doesn't support it */ }
+};
+
+const submit = (fn) => (e) => { e.preventDefault(); fn(); };
+
 export default function Login({ onLogin }) {
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({ email: '', password: '', name: '', role: 'viewer' });
@@ -36,6 +48,7 @@ export default function Login({ onLogin }) {
 
     const session = { ...user, loggedInAt: new Date().toISOString() };
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    offerToSaveLogin(user.email, form.password, user.name);
     onLogin(session);
   };
 
@@ -62,6 +75,7 @@ export default function Login({ onLogin }) {
     saveUsers([...users, newUser]);
     const session = { ...newUser, loggedInAt: new Date().toISOString() };
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    offerToSaveLogin(newUser.email, newUser.password, newUser.name);
     onLogin(session);
   };
 
@@ -92,71 +106,72 @@ export default function Login({ onLogin }) {
             <>
               <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Create Admin Account</h2>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Set up your owner account to get started</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <form onSubmit={submit(handleSetup)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="form-group">
-                  <label className="form-label">Your Name</label>
-                  <input className="form-input" placeholder="Full name" value={form.name} onChange={e => update('name', e.target.value)} />
+                  <label className="form-label" htmlFor="setup-name">Your Name</label>
+                  <input id="setup-name" name="name" autoComplete="name" className="form-input" placeholder="Full name" value={form.name} onChange={e => update('name', e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Email</label>
-                  <input className="form-input" type="email" placeholder="you@example.com" value={form.email} onChange={e => update('email', e.target.value)} />
+                  <label className="form-label" htmlFor="setup-email">Email</label>
+                  <input id="setup-email" name="email" autoComplete="username" className="form-input" type="email" placeholder="you@example.com" value={form.email} onChange={e => update('email', e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Password</label>
-                  <input className="form-input" type="password" placeholder="Min 6 characters" value={form.password} onChange={e => update('password', e.target.value)} />
+                  <label className="form-label" htmlFor="setup-password">Password</label>
+                  <input id="setup-password" name="password" autoComplete="new-password" className="form-input" type="password" placeholder="Min 6 characters" value={form.password} onChange={e => update('password', e.target.value)} />
                 </div>
                 {error && <div style={{ color: '#DC2626', fontSize: 13 }}>⚠️ {error}</div>}
-                <button className="btn btn-gold btn-lg" style={{ width: '100%', justifyContent: 'center' }} onClick={handleSetup}>
+                <button type="submit" className="btn btn-gold btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
                   Create Account & Sign In
                 </button>
-              </div>
+              </form>
             </>
           ) : mode === 'login' ? (
             <>
               <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Sign In</h2>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Clear Path Properties LLC</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <form onSubmit={submit(handleLogin)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="form-group">
-                  <label className="form-label">Email</label>
-                  <input className="form-input" type="email" placeholder="your@email.com" value={form.email} onChange={e => update('email', e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+                  <label className="form-label" htmlFor="login-email">Email</label>
+                  <input id="login-email" name="email" autoComplete="username" className="form-input" type="email" placeholder="you@example.com" value={form.email} onChange={e => update('email', e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Password</label>
-                  <input className="form-input" type="password" placeholder="Your password" value={form.password} onChange={e => update('password', e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleLogin()} />
+                  <label className="form-label" htmlFor="login-password">Password</label>
+                  <input id="login-password" name="password" autoComplete="current-password" className="form-input" type="password" placeholder="Your password" value={form.password} onChange={e => update('password', e.target.value)} />
                 </div>
                 {error && <div style={{ color: '#DC2626', fontSize: 13 }}>⚠️ {error}</div>}
-                <button className="btn btn-gold btn-lg" style={{ width: '100%', justifyContent: 'center' }} onClick={handleLogin}>
+                <button type="submit" className="btn btn-gold btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
                   Sign In
                 </button>
-              </div>
+                <button type="button" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setError(''); setMode('signup'); }}>
+                  Create a team member account
+                </button>
+              </form>
             </>
           ) : (
             <>
               <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Create Account</h2>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 24 }}>Team member access</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <form onSubmit={submit(handleSetup)} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div className="form-group">
-                  <label className="form-label">Full Name</label>
-                  <input className="form-input" placeholder="Full name" value={form.name} onChange={e => update('name', e.target.value)} />
+                  <label className="form-label" htmlFor="signup-name">Full Name</label>
+                  <input id="signup-name" name="name" autoComplete="name" className="form-input" placeholder="Full name" value={form.name} onChange={e => update('name', e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Email</label>
-                  <input className="form-input" type="email" value={form.email} onChange={e => update('email', e.target.value)} />
+                  <label className="form-label" htmlFor="signup-email">Email</label>
+                  <input id="signup-email" name="email" autoComplete="username" className="form-input" type="email" placeholder="you@example.com" value={form.email} onChange={e => update('email', e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Password</label>
-                  <input className="form-input" type="password" value={form.password} onChange={e => update('password', e.target.value)} />
+                  <label className="form-label" htmlFor="signup-password">Password</label>
+                  <input id="signup-password" name="password" autoComplete="new-password" className="form-input" type="password" placeholder="Min 6 characters" value={form.password} onChange={e => update('password', e.target.value)} />
                 </div>
                 {error && <div style={{ color: '#DC2626', fontSize: 13 }}>⚠️ {error}</div>}
-                <button className="btn btn-gold btn-lg" style={{ width: '100%', justifyContent: 'center' }} onClick={handleSetup}>
+                <button type="submit" className="btn btn-gold btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
                   Create Account
                 </button>
-                <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setMode('login')}>
+                <button type="button" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setError(''); setMode('login'); }}>
                   Back to Sign In
                 </button>
-              </div>
+              </form>
             </>
           )}
         </div>
