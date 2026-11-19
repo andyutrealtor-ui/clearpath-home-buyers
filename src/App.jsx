@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import Leads from './pages/Leads';
 import ARVTool from './pages/ARVTool';
-import { FollowUps, Buyers, Settings } from './pages/OtherPages';
-import LeadSearch from './pages/LeadSearch';
-import Login from './pages/Login';
-import Team from './pages/Team';
+import MAOCalc from './pages/MAOCalc';
 import LOI from './pages/LOI';
-import { initialLeads, initialBuyers } from './data/leads';
+import CallScripts from './pages/CallScripts';
+import { Settings } from './pages/OtherPages';
+import Login from './pages/Login';
 
-const LEADS_KEY = 'clearpath_leads';
-const BUYERS_KEY = 'clearpath_buyers';
+// Leads, follow-ups and agent contacts now live in HubSpot (filled by the daily
+// scheduled task). This app is the deal-analysis toolkit: ARV → MAO → LOI, plus call scripts.
+
 const SETTINGS_KEY = 'clearpath_settings';
+const DEAL_KEY = 'clearpath_deal';
 
 const defaultSettings = {
   name: 'Andy Johnson', phone: '', email: '',
@@ -20,55 +19,38 @@ const defaultSettings = {
   activeStates: ['TX', 'UT', 'CO', 'AZ']
 };
 
+const load = (key, fallback) => {
+  try {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : fallback;
+  } catch { return fallback; }
+};
+const store = (key, value) => {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+};
+
 export default function App() {
-  const [page, setPage] = useState('dashboard');
-  const [selectedLead, setSelectedLead] = useState(null);
-  const [currentUser, setCurrentUser] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('clearpath_session')); } catch { return null; }
-  });
-  const [leads, setLeads] = useState(() => {
-    try {
-      const saved = localStorage.getItem(LEADS_KEY);
-      return saved ? JSON.parse(saved) : initialLeads;
-    } catch { return initialLeads; }
-  });
-  const [buyers, setBuyers] = useState(() => {
-    try {
-      const saved = localStorage.getItem(BUYERS_KEY);
-      const parsed = saved ? JSON.parse(saved) : [];
-      // If empty, load from seed data
-      return parsed.length > 0 ? parsed : initialBuyers;
-    } catch { return initialBuyers; }
-  });
-  const [settings, setSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem(SETTINGS_KEY);
-      return saved ? JSON.parse(saved) : defaultSettings;
-    } catch { return defaultSettings; }
-  });
+  const [page, setPage] = useState('arv');
+  const [currentUser, setCurrentUser] = useState(() => load('clearpath_session', null));
+  const [settings, setSettings] = useState(() => load(SETTINGS_KEY, defaultSettings));
+  const [deal, setDeal] = useState(() => load(DEAL_KEY, {}));
 
-  useEffect(() => { localStorage.setItem(LEADS_KEY, JSON.stringify(leads)); }, [leads]);
-  useEffect(() => { localStorage.setItem(BUYERS_KEY, JSON.stringify(buyers)); }, [buyers]);
-  useEffect(() => { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }, [settings]);
+  useEffect(() => { store(SETTINGS_KEY, settings); }, [settings]);
+  useEffect(() => { store(DEAL_KEY, deal); }, [deal]);
 
-  const handleLogin = (user) => setCurrentUser(user);
   const handleLogout = () => {
-    localStorage.removeItem('clearpath_session');
+    try { localStorage.removeItem('clearpath_session'); } catch { /* ignore */ }
     setCurrentUser(null);
   };
 
-  if (!currentUser) return <Login onLogin={handleLogin} />;
+  if (!currentUser) return <Login onLogin={setCurrentUser} />;
 
   const renderPage = () => {
     switch (page) {
-      case 'search': return <LeadSearch leads={leads} setLeads={setLeads} settings={settings} />;
-      case 'loi': return <LOI leads={leads} settings={settings} />;
-      case 'team': return <Team currentUser={currentUser} />;
-      case 'dashboard': return <Dashboard leads={leads} setPage={setPage} setSelectedLead={setSelectedLead} />;
-      case 'leads': return <Leads leads={leads} setLeads={setLeads} selectedLead={selectedLead} setSelectedLead={setSelectedLead} />;
-      case 'followups': return <FollowUps leads={leads} setLeads={setLeads} />;
-      case 'arv': return <ARVTool />;
-      case 'buyers': return <Buyers buyers={buyers} setBuyers={setBuyers} />;
+      case 'arv': return <ARVTool deal={deal} setDeal={setDeal} setPage={setPage} />;
+      case 'mao': return <MAOCalc deal={deal} setDeal={setDeal} setPage={setPage} />;
+      case 'loi': return <LOI deal={deal} settings={settings} />;
+      case 'scripts': return <CallScripts deal={deal} settings={settings} />;
       case 'settings': return <Settings settings={settings} setSettings={setSettings} />;
       default: return null;
     }
@@ -76,7 +58,7 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar page={page} setPage={(p) => { setPage(p); setSelectedLead(null); }} leads={leads} currentUser={currentUser} onLogout={handleLogout} />
+      <Sidebar page={page} setPage={setPage} deal={deal} currentUser={currentUser} onLogout={handleLogout} />
       <main style={{
         marginLeft: 'var(--sidebar-width)', flex: 1,
         minHeight: '100vh', background: 'var(--off-white)', overflowX: 'hidden'

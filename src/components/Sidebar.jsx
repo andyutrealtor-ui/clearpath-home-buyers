@@ -1,24 +1,16 @@
 import React from 'react';
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: '▣' },
-  { id: 'search', label: 'Lead Search', icon: '⌕' },
-  { id: 'leads', label: 'Leads', icon: '◉' },
-  { id: 'followups', label: 'Follow-Ups', icon: '◷' },
-  { id: 'arv', label: 'ARV Tool', icon: '◈' },
-  { id: 'loi', label: 'Send Offer', icon: '✉' },
-  { id: 'buyers', label: 'Cash Buyers', icon: '◎' },
-  { id: 'team', label: 'Team', icon: '◌' },
+  { id: 'arv', label: 'ARV Tool', icon: '◈', step: 1 },
+  { id: 'mao', label: 'MAO Calculator', icon: '＄', step: 2 },
+  { id: 'loi', label: 'LOI / Send Offer', icon: '✉', step: 3 },
+  { id: 'scripts', label: 'Call Scripts', icon: '☏' },
   { id: 'settings', label: 'Settings', icon: '⚙' },
 ];
 
-export default function Sidebar({ page, setPage, leads, currentUser, onLogout }) {
-  const followupsDue = leads.filter(l => {
-    if (!l.follow_up_date) return false;
-    return new Date(l.follow_up_date).toDateString() === new Date().toDateString();
-  }).length;
+const HUBSPOT_DEALS = 'https://app.hubspot.com/contacts/246018718/objects/0-3/views/all/board';
 
-  const newLeads = leads.filter(l => l.status === 'New').length;
+export default function Sidebar({ page, setPage, deal = {}, currentUser, onLogout }) {
 
   return (
     <aside style={{
@@ -48,7 +40,7 @@ export default function Sidebar({ page, setPage, leads, currentUser, onLogout })
       <nav style={{ padding: '10px 8px', flex: 1, overflowY: 'auto' }}>
         {navItems.map(item => {
           const isActive = page === item.id;
-          const badge = item.id === 'followups' ? followupsDue : item.id === 'leads' ? newLeads : 0;
+          const done = (item.id === 'arv' && deal.arv) || (item.id === 'mao' && deal.offer);
           return (
             <button key={item.id} onClick={() => setPage(item.id)} style={{
               width: '100%', display: 'flex', alignItems: 'center', gap: 9,
@@ -61,17 +53,22 @@ export default function Sidebar({ page, setPage, leads, currentUser, onLogout })
             }}>
               <span style={{ fontSize: 14, width: 18, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
               <span style={{ flex: 1 }}>{item.label}</span>
-              {badge > 0 && (
+              {item.step && (
                 <span style={{
-                  background: item.id === 'followups' ? '#EF4444' : '#E8A020',
-                  color: item.id === 'followups' ? 'white' : '#0A2342',
-                  borderRadius: 10, padding: '0 6px', fontSize: 10, fontWeight: 700,
-                  lineHeight: '18px', minWidth: 18, textAlign: 'center'
-                }}>{badge}</span>
+                  background: done ? '#10B981' : 'rgba(255,255,255,0.08)', color: done ? 'white' : 'rgba(255,255,255,0.4)',
+                  borderRadius: 10, padding: '0 6px', fontSize: 10, fontWeight: 700, lineHeight: '18px', minWidth: 18, textAlign: 'center'
+                }}>{done ? '✓' : item.step}</span>
               )}
             </button>
           );
         })}
+        <a href={HUBSPOT_DEALS} target="_blank" rel="noopener noreferrer" style={{
+          display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', marginTop: 10, borderRadius: 7,
+          color: 'rgba(255,255,255,0.55)', fontSize: 13, textDecoration: 'none', borderTop: '1px solid rgba(255,255,255,0.06)'
+        }}>
+          <span style={{ fontSize: 14, width: 18, textAlign: 'center' }}>↗</span>
+          <span>Leads in HubSpot</span>
+        </a>
       </nav>
 
       {/* User */}

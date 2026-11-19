@@ -3,36 +3,29 @@ import React, { useState } from 'react';
 const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 const expires = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-export default function LOI({ leads, settings }) {
-  const [selectedLeadId, setSelectedLeadId] = useState('');
-  const [form, setForm] = useState({
-    offer_price: '', earnest_money: '1500', close_days: '30',
-    inspection_days: '14', seller_name: '', seller_email: '',
+const fromDeal = (deal = {}) => ({
+  property_address: deal.address || '',
+  city: deal.city || '',
+  state: deal.state || '',
+  zip: deal.zip || '',
+  offer_price: deal.offer ? String(deal.offer) : '',
+});
+
+export default function LOI({ deal = {}, settings }) {
+  const [form, setForm] = useState(() => ({
+    offer_price: '', earnest_money: '1500', close_days: '14',
+    inspection_days: '10', seller_name: '', seller_email: '',
     seller_phone: '', property_address: '', city: '', state: '',
     zip: '', property_type: 'Single Family Residential',
-    assignment: true, notes: '',
-  });
+    assignment: true, agent_listed: true, notes: '',
+    ...fromDeal(deal),
+  }));
   const [sent, setSent] = useState(false);
-  const [preview, setPreview] = useState(false);
+  const [preview, setPreview] = useState(Boolean(deal.offer));
 
   const update = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
-  const fillFromLead = (id) => {
-    setSelectedLeadId(id);
-    const lead = leads.find(l => String(l.id) === String(id));
-    if (!lead) return;
-    setForm(p => ({
-      ...p,
-      seller_name: lead.owner_name !== 'Unknown' ? lead.owner_name : '',
-      seller_phone: lead.phone || '',
-      seller_email: lead.email || lead.skip_trace_email || '',
-      property_address: lead.property_address || '',
-      city: lead.city || '',
-      state: lead.state || '',
-      zip: lead.zip || '',
-      offer_price: lead.offer_made ? String(lead.offer_made) : lead.mao ? String(Math.round(lead.mao)) : '',
-    }));
-  };
+  const refillFromDeal = () => setForm(p => ({ ...p, ...fromDeal(deal) }));
+  const toWho = form.agent_listed ? 'Listing Agent' : 'Seller';
 
   const buyerName = settings?.name || 'Andy Johnson';
   const buyerPhone = settings?.phone || '';
@@ -46,15 +39,17 @@ Offer Valid Until: ${expires}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-TO:     ${form.seller_name || '[Seller / Seller\'s Agent]'}
+TO:     ${form.seller_name || `[${toWho}]`}${form.agent_listed ? ', on behalf of the Seller' : ''}
 FROM:   ${buyerName}, Clear Path Properties LLC
 RE:     Letter of Intent to Purchase Real Property
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Dear ${form.seller_name || 'Seller / Seller\'s Representative'},
+Dear ${form.seller_name || (form.agent_listed ? 'Listing Agent' : 'Seller')},
 
-Thank you for taking the time to speak with us. Clear Path Properties LLC is pleased to present this Letter of Intent to purchase the property described below. We specialize in straightforward, as-is cash closings — no repairs required, no agent commissions charged to the seller, and no financing contingencies. Our goal is to make this as simple and stress-free as possible for you.
+${form.agent_listed
+  ? `Clear Path Properties LLC is pleased to present this Letter of Intent to purchase your listing described below. Please share it with your seller. We are cash buyers who close as-is — no repairs, no financing contingency, and a quick, predictable closing.`
+  : `Thank you for taking the time to speak with us. Clear Path Properties LLC is pleased to present this Letter of Intent to purchase the property described below. We specialize in straightforward, as-is cash closings — no repairs required, no agent commissions charged to the seller, and no financing contingencies. Our goal is to make this as simple and stress-free as possible for you.`}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PROPERTY
@@ -76,7 +71,7 @@ Inspection Period:    ${form.inspection_days} business days from execution of Pu
 Closing Date:         On or before ${form.close_days} days from effective date of agreement
 Title Company:        Seller's choice of title company
 Closing Costs:        Each party responsible for their own closing costs
-Commission:           No real estate commission charged to Seller${form.assignment ? `
+Commission:           ${form.agent_listed ? 'Per Seller\'s existing listing agreement' : 'No real estate commission charged to Seller'}${form.assignment ? `
 Assignment:           Buyer reserves the right to assign this contract to a third party` : ''}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -93,8 +88,8 @@ CONDITIONS
 WHAT THIS MEANS FOR YOU
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✓ No repairs or cleaning required — sell completely as-is, in any condition
-✓ No agent commissions — you keep more of the sale price
+✓ No repairs or cleaning required — sell completely as-is, in any condition${form.agent_listed ? '' : `
+✓ No agent commissions — you keep more of the sale price`}
 ✓ No financing contingencies — cash offer, no bank approval needed
 ✓ Fast closing — close in as little as ${form.close_days} days or on your timeline
 ✓ Simple process — no showings, no open houses, no waiting on the market
@@ -151,8 +146,6 @@ Clear Path Properties LLC  |  clearpath-home-buyers.vercel.app`;
     alert('✅ LOI copied to clipboard — paste into a text or email');
   };
 
-  const activeLeads = leads.filter(l => l.status !== 'Dead');
-
   return (
     <div className="fade-in" style={{ padding: 24, maxWidth: 1000 }}>
       <div style={{ marginBottom: 24 }}>
@@ -165,19 +158,21 @@ Clear Path Properties LLC  |  clearpath-home-buyers.vercel.app`;
         {/* Left — Form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* Pull from lead */}
+          {/* From the current deal */}
           <div className="card">
-            <div className="card-header"><h2 style={{ fontSize: 14, fontWeight: 700 }}>📋 Pull from Lead</h2></div>
-            <div className="card-body">
-              <div className="form-group">
-                <label className="form-label">Select a Lead</label>
-                <select className="form-select" value={selectedLeadId} onChange={e => fillFromLead(e.target.value)}>
-                  <option value="">— Choose a lead —</option>
-                  {activeLeads.map(l => (
-                    <option key={l.id} value={l.id}>{l.property_address}, {l.city} {l.state}</option>
-                  ))}
-                </select>
-              </div>
+            <div className="card-header"><h2 style={{ fontSize: 14, fontWeight: 700 }}>📋 Current Deal</h2></div>
+            <div className="card-body" style={{ fontSize: 13 }}>
+              {deal.address || deal.arv ? (
+                <>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>{deal.address || '(no address)'}{deal.city ? `, ${deal.city} ${deal.state || ''}` : ''}</div>
+                  <div style={{ color: 'var(--text-muted)', marginBottom: 10 }}>
+                    ARV {deal.arv ? '$' + Number(deal.arv).toLocaleString() : '—'} · Offer {deal.offer ? '$' + Number(deal.offer).toLocaleString() : '—'}
+                  </div>
+                  <button className="btn btn-outline btn-sm" onClick={refillFromDeal}>↺ Refill from deal</button>
+                </>
+              ) : (
+                <div style={{ color: 'var(--text-muted)' }}>No deal yet — start in the ARV Tool, or fill in the form below by hand.</div>
+              )}
             </div>
           </div>
 
@@ -213,14 +208,20 @@ Clear Path Properties LLC  |  clearpath-home-buyers.vercel.app`;
                   Include Assignment Clause
                 </label>
               </div>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                  <input type="checkbox" checked={form.agent_listed} onChange={e => update('agent_listed', e.target.checked)} />
+                  Agent-listed property (address the LOI to the listing agent)
+                </label>
+              </div>
             </div>
           </div>
 
           {/* Seller Info */}
           <div className="card">
-            <div className="card-header"><h2 style={{ fontSize: 14, fontWeight: 700 }}>👤 Seller Info</h2></div>
+            <div className="card-header"><h2 style={{ fontSize: 14, fontWeight: 700 }}>👤 {toWho} Info</h2></div>
             <div className="card-body" style={{ display: 'grid', gap: 12 }}>
-              {[['seller_name','Seller Name'],['seller_email','Seller Email'],['seller_phone','Seller Phone']].map(([f,l]) => (
+              {[['seller_name', `${toWho} Name`], ['seller_email', `${toWho} Email`], ['seller_phone', `${toWho} Phone`]].map(([f,l]) => (
                 <div key={f} className="form-group">
                   <label className="form-label">{l}</label>
                   <input className="form-input" value={form[f]} onChange={e => update(f, e.target.value)} />
@@ -308,9 +309,9 @@ Clear Path Properties LLC  |  clearpath-home-buyers.vercel.app`;
               <div style={{ fontSize: 13, marginBottom: 24 }}>Fill in the offer terms and click Preview</div>
               <div style={{ padding: 16, background: 'var(--gray-100)', borderRadius: 10, textAlign: 'left', fontSize: 13, maxWidth: 280, margin: '0 auto' }}>
                 <div style={{ fontWeight: 600, marginBottom: 10, color: 'var(--navy)' }}>Quick steps:</div>
-                <div style={{ marginBottom: 6 }}>1. Select a lead to auto-fill</div>
-                <div style={{ marginBottom: 6 }}>2. Set your offer price</div>
-                <div style={{ marginBottom: 6 }}>3. Add seller email if you have it</div>
+                <div style={{ marginBottom: 6 }}>1. ARV Tool → MAO Calculator → "LOI at $…" fills this in</div>
+                <div style={{ marginBottom: 6 }}>2. Check the offer price</div>
+                <div style={{ marginBottom: 6 }}>3. Add the listing agent's name and email</div>
                 <div style={{ marginBottom: 6 }}>4. Click Preview LOI</div>
                 <div>5. Send or copy</div>
               </div>
