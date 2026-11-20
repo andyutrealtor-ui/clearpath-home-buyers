@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 const SEARCH_TYPES = [
   { id: 'pricecut', label: 'Price-Cut Window', icon: '⏳', color: '#0EA5E9', bg: '#E0F2FE', desc: '50–59 days on market — right before the price-cut talk' },
-  { id: 'stale', label: 'Stale Listings', icon: '📅', color: '#F59E0B', bg: '#FEF3C7', desc: '90+ days on market, or any price reduction' },
+  { id: 'stale', label: 'Stale Listings', icon: '📅', color: '#F59E0B', bg: '#FEF3C7', desc: '60+ days on market, or any price reduction' },
   { id: 'preforeclosure', label: 'Foreclosure / Short Sale', icon: '🏚️', color: '#EF4444', bg: '#FEE2E2', desc: 'Listed as foreclosure, bank-owned or short sale' },
 ];
 
@@ -15,6 +15,7 @@ const STATE_INFO = {
 };
 const MAX_PER_STATE = 25;
 const MAX_PRICE = 400000; // cash-offer ceiling
+const MAX_HOA = 150;      // $/month; listings with no HOA data are kept
 
 // 50–59 days on market: the listing is about to hit the usual 60-day price-cut conversation.
 export const inPriceCutWindow = (lead) => {
@@ -62,7 +63,7 @@ export function categorize(listing) {
   let type = null;
   if (distressed) type = 'preforeclosure';
   else if (dom != null && dom >= 50 && dom <= 59) type = 'pricecut';
-  else if ((dom != null && dom >= 90) || ph.drops > 0) type = 'stale';
+  else if ((dom != null && dom >= 60) || ph.drops > 0) type = 'stale';
   return { type, dom, ph, distressed };
 }
 
@@ -90,7 +91,7 @@ export default function LeadSearch({ leads, setLeads, settings }) {
     setRunning(true); setResults([]); setLog([]); setDone(false);
     const allResults = [];
 
-    // One RentCast request per state: listings 50–59 days on market (a 50+ query overflows the 500 cap in big metros).
+    // One RentCast request per state: SFR/townhome/2–4 unit listings 50+ days on market, ≤ $400k.
     for (const state of selectedStates) {
       const { city } = STATE_INFO[state];
       addLog(`🔍 Pulling active listings in ${city}, ${state} from RentCast...`);
@@ -98,7 +99,7 @@ export default function LeadSearch({ leads, setLeads, settings }) {
         const res = await fetch('/api/rentcast', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ city, state, daysOld: '50:59', price: `*:${MAX_PRICE}`, limit: 500 }),
+          body: JSON.stringify({ city, state, daysOld: '50:*', price: `*:${MAX_PRICE}`, limit: 500 }),
         });
         const json = await res.json();
         if (!res.ok || json.error) { addLog(`❌ RentCast error: ${json.error || res.status}`); continue; }
@@ -108,6 +109,7 @@ export default function LeadSearch({ leads, setLeads, settings }) {
         for (const l of json.listings || []) {
           const c = categorize(l);
           if (!c.type || !selectedTypes.includes(c.type)) continue;
+          if (Number(l.hoa?.fee) > MAX_HOA) continue;
           counts[c.type]++;
           const typeName = SEARCH_TYPES.find(t => t.id === c.type).label;
           const agent = l.listingAgent || {};

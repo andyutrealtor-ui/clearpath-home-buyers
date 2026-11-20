@@ -1,7 +1,7 @@
 // Proxies RentCast's sale-listings search so the API key stays on the server.
 // Set RENTCAST_API_KEY in Vercel → Project → Settings → Environment Variables.
 const STATES = new Set(['UT', 'TX', 'CO', 'AZ']);
-const PROPERTY_TYPES = 'Single Family|Townhouse|Condo|Multi-Family|Manufactured';
+const PROPERTY_TYPES = 'Single Family|Townhouse|Multi-Family'; // SFR, townhomes, 2–4 unit rentals
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   const key = process.env.RENTCAST_API_KEY;
   if (!key) return res.status(500).json({ error: 'RENTCAST_API_KEY is not set in Vercel environment variables.' });
 
-  const { city, state, daysOld = '50:59', price = '*:400000', limit = 500 } = req.body || {};
+  const { city, state, daysOld = '50:*', price = '*:400000', limit = 500 } = req.body || {};
   if (!STATES.has(state)) return res.status(400).json({ error: 'state must be one of UT, TX, CO, AZ' });
   if (!city || typeof city !== 'string') return res.status(400).json({ error: 'city required' });
   const RANGE = /^(\d+|\*):(\d+|\*)$|^\d+$/;
